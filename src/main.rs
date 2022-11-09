@@ -7,6 +7,7 @@ use std::time::Duration;
 use y2020::day1::*;
 use y2020::day2::*;
 use y2020::day3::*;
+use y2020::day4::*;
 
 use crate::day::Day as DayTrait;
 
@@ -31,6 +32,7 @@ fn full_test()
         Box::new(Day1::new()),
         Box::new(Day2::new()),
         Box::new(Day3::new()),
+        Box::new(Day4::new()),
     ];
 
     let construction_time = construction_start.elapsed();
