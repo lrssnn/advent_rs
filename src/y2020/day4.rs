@@ -1,5 +1,4 @@
 ﻿use std::{fs, fmt::Display, collections::HashMap};
-use regex::Regex;
 use super::super::day::Day;
 
 pub struct Day4
@@ -43,8 +42,6 @@ impl Day for Day4 {
 
 struct Passport {
     fields: HashMap<String, String>,
-    hair_re: Regex,
-    pid_re: Regex,
 }
 
 impl Passport {
@@ -61,10 +58,7 @@ impl Passport {
             }
         }
 
-        let hair_re = Regex::new("^#[a-f|0-9]{6}$").expect("Regex Error");
-        let pid_re = Regex::new("^[0-9]{9}$").expect("Regex error...");
-
-        Passport {fields, hair_re, pid_re}
+        Passport {fields}
     }
 
     fn is_complete(&self) -> bool {
@@ -135,8 +129,16 @@ impl Passport {
     fn hair_valid(&self) -> bool {
         //hcl (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
         let hcl = &self.fields["hcl"];
-        // TODO This is probably way slower than validating character by character
-        self.hair_re.is_match(hcl)
+        if hcl.len() != 7 { return false; }
+        let mut chars = hcl.chars();
+        if chars.next().expect("Invalid String") != '#' { return false; }
+
+        for c in chars {
+            if c.is_numeric() { continue; }
+            if ('a'..='f').contains(&c) { continue;}
+            return false;
+        }
+        true
     }
 
     fn eye_valid(&self) -> bool {
@@ -149,8 +151,12 @@ impl Passport {
     fn pid_valid(&self) -> bool {
         // pid (Passport ID) - a nine-digit number, including leading zeroes.
         let pid = &self.fields["pid"];
-        // TODO This is probably way slower than validating character by character
-        self.pid_re.is_match(pid)
+        if pid.len() != 9 { return false; }
+        let chars = pid.chars();
+        for c in chars {
+            if !c.is_numeric() { return false; }
+        }
+        true
     }
 }
 
