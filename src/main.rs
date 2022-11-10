@@ -46,7 +46,7 @@ fn full_test()
     println!("| Day | 1 | 2 | Solve Time (ms) |");
     println!("+-----+---+---+-----------------+");
     let mut total_millis = Duration::from_secs(0);
-    for day in days {
+    for mut day in days {
         let start = Instant::now();
         let answers = day.solve();
         let solve_time = start.elapsed();

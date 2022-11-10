@@ -33,7 +33,7 @@ impl Day for Day3 {
     fn answer1(&self) -> String { String::from("211") }
     fn answer2(&self) -> String { String::from("3584591857") }
 
-    fn solve(&self) -> (String, String) {
+    fn solve(&mut self) -> (String, String) {
         let part1 = self.map.count_trees(3, 1);
         let part2 = self.get_part2_answer();
         (part1.to_string(), part2.to_string())

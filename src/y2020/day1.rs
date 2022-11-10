@@ -24,7 +24,7 @@ impl Day for Day1 {
     fn answer1(&self) -> String { String::from("788739") }
     fn answer2(&self) -> String { String::from("178724430") }
 
-    fn solve(&self) -> (String, String)
+    fn solve(&mut self) -> (String, String)
     {
         let length = self.nums.len();
         // Part 1 
@@ -42,7 +42,7 @@ impl Day for Day1 {
 
         // Part 2 
         let mut ans2 = String::new();
-        'outer: for i in 0..length {
+        'outer2: for i in 0..length {
             for j in i..length {
                 let a = &self.nums[i];
                 let b = &self.nums[j];
@@ -55,7 +55,7 @@ impl Day for Day1 {
                     let c = &self.nums[k];
                     if partial + c == 2020 {
                         ans2 = (a * b * c).to_string();
-                        break 'outer;
+                        break 'outer2;
                     }
                 }
             }

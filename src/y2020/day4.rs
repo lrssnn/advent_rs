@@ -25,7 +25,7 @@ impl Day for Day4 {
     fn answer1(&self) -> String { String::from("222") }
     fn answer2(&self) -> String { String::from("140") }
 
-    fn solve(&self) -> (String, String) {
+    fn solve(&mut self) -> (String, String) {
         let complete_passports = self.passports.iter().filter(|p| p.is_complete());
         // This is insane, must be a borrow safe way to map both but count inbetween...
         let mut completes = 0;

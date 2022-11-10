@@ -4,7 +4,7 @@
     fn answer1(&self) -> String;
     fn answer2(&self) -> String;
 
-    fn solve(&self) -> (String, String);
+    fn solve(&mut self) -> (String, String);
 
     fn validate(&self, candidates: (String, String)) -> (char, char) {
         (if candidates.0 == self.answer1() {'✓'} else {'x'}, 

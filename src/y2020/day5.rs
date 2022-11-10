@@ -25,22 +25,22 @@ impl Day for Day5 {
     fn answer1(&self) -> String { String::from("892") }
     fn answer2(&self) -> String { String::from("625") }
 
-    fn solve(&self) -> (String, String) {
-        let max_id = self.passes.iter().map(|p| p.get_id()).max().expect("No max?");
-        let part1 = max_id.to_string();
+    fn solve(&mut self) -> (String, String) {
+        let max_id = self.passes.iter_mut().map(|p| p.get_id()).max().expect("No max?");
+        let part1 = max_id;
         
         assert_eq!(892, max_id); // Just to draw attention to this hardcoded size
         let mut found = [false; 893];
-        for p in self.passes.iter() {
+        for p in self.passes.iter_mut() {
             found[p.get_id()] = true;
         }
         
-        let mut part2 = String::new();
-        let not_found = found.iter().enumerate().filter(|pair| *pair.1 == false);
+        let mut part2 = 0;
+        let not_found = found.iter().enumerate().filter(|pair| !(*pair.1));
         for n in not_found {
             if n.0 == 0 { continue; }
             if found[n.0 -1] && found[n.0 + 1] {
-                part2 = n.0.to_string();        
+                part2 = n.0;        
                 break;
             } 
         }
@@ -51,6 +51,7 @@ impl Day for Day5 {
 struct BoardingPass {
     row_indicators: [bool; 7],
     col_indicators: [bool; 3],
+    id: Option<usize>,
 }
 
 impl BoardingPass {
@@ -60,21 +61,19 @@ impl BoardingPass {
         
         let mut chars = input.chars();
 
-        for i in 0..7 {
+        for row_indicator in &mut row_indicators {
             let c = chars.next().expect("Line too short...");
-            if c.eq(&'B') { row_indicators[i] = true; }
+            if c.eq(&'B') { *row_indicator = true; }
         }
 
-        for j in 0..3 {
+        for col_indicator in &mut col_indicators {
             let c = chars.next().expect("Line too short...");
-            if c.eq(&'R') { col_indicators[j] = true; }
+            if c.eq(&'R') { *col_indicator = true; }
         }
         
         assert_eq!(0, chars.count());
 
-        let b = BoardingPass {row_indicators, col_indicators};
-        //println!("{}", b);
-        b
+        BoardingPass {row_indicators, col_indicators, id: None}
     }
     
     fn get_row(&self) -> usize {
@@ -97,10 +96,25 @@ impl BoardingPass {
         index
     }
     
-    fn get_id(&self) -> usize {
+    fn get_id(&mut self) -> usize {
+        if let Some(cached) = self.id {
+            return cached;
+        }
         let row = self.get_row();
         let col = self.get_col();
-        (row * 8) + col 
+        let id = (row * 8) + col;
+        self.id = Some(id);
+        id
+    }
+
+    // Just the above without a caching step
+    fn get_id_safe(&self) -> usize {
+        if let Some(cached) = self.id {
+            return cached;
+        }
+        let row = self.get_row();
+        let col = self.get_col();
+        (row * 8) + col
     }
 }
 
@@ -120,7 +134,7 @@ impl Display for BoardingPass {
                 .join(""),
             self.get_row(),
             self.get_col(),
-            self.get_id()
+            self.get_id_safe()
         )
     }
 }

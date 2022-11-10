@@ -24,7 +24,7 @@ impl Day for Day2 {
     fn answer1(&self) -> String { String::from("398") }
     fn answer2(&self) -> String { String::from("562") }
 
-    fn solve(&self) -> (String, String) {
+    fn solve(&mut self) -> (String, String) {
         let part1 = self.passwords.iter().filter(|p| p.satisfies_criteria1()).count();
         let part2 = self.passwords.iter().filter(|p| p.satisfies_criteria2()).count();
         (part1.to_string(), part2.to_string())
