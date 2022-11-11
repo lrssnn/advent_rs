@@ -71,8 +71,6 @@ impl BoardingPass {
             if c.eq(&'R') { *col_indicator = true; }
         }
         
-        assert_eq!(0, chars.count());
-
         BoardingPass {row_indicators, col_indicators, id: None}
     }
     

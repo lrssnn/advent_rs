@@ -54,7 +54,6 @@ impl AnswerGroup {
             answers.push(items);
         }
         
-        //println!("{:?}", answers);
         AnswerGroup { answers }
     }
     
