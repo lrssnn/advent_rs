@@ -14,7 +14,7 @@ impl Day8 {
         let input = fs::read_to_string("src/y2020/input8")
             .expect("File Read Error");
 
-        let input = "nop +0\nacc +1\njmp +4\nacc +3\njmp -3\nacc -99\nacc +1\njmp -4\nacc +6";
+        //let input = "nop +0\nacc +1\njmp +4\nacc +3\njmp -3\nacc -99\nacc +1\njmp -4\nacc +6";
 
         let lines = input.trim().split('\n').map(|s| s.trim());
         
@@ -27,41 +27,72 @@ impl Day8 {
 impl Day for Day8 {
     fn day_name(&self) -> String { String::from("08") }
     fn answer1(&self) -> String { String::from("1134") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("1205") }
 
     fn solve(&mut self) -> (String, String) {
-        let part1 = self.find_loop_value();
-        let part2 = 0;
+        let (part1, _) = self.find_loop_value(None);
+        self.reset();
+        let part2 = self.find_terminating_program();
         
-        println!("{}, {}", part1, part2);
         (part1.to_string(), part2.to_string())
     }
 }
 
 impl Day8 {
-    fn find_loop_value(&mut self) -> isize {
+    fn find_loop_value(&mut self, reversed_index: Option<usize>) -> (isize, bool) {
         loop {
-            if self.instructions[self.iptr].seen {
-                return self.acc;
+            if self.iptr == self.instructions.len() {
+                return (self.acc, true);
             }
 
-            self.tick()
+            if self.instructions[self.iptr].seen {
+                return (self.acc, false);
+            }
+
+            self.tick(reversed_index)
         }
     }
 
-    fn tick(&mut self) {
+    fn find_terminating_program(&mut self) -> isize {
+        for i in 0..self.instructions.len() -1 {
+            let (v, terminated) = self.find_loop_value(Some(i));
+            if terminated {
+                return v;
+            }
+            self.reset();
+        }
+        panic!("I'm not even supposed to be here");
+    }
+
+    fn tick(&mut self, reversed_index: Option<usize>) {
         let mut inst = &mut self.instructions[self.iptr];
-        println!("Processing {}", inst);
         inst.seen = true;
 
-        match inst.op {
-            Op::Nop(_) => { self.iptr += 1},
-            Op::Acc(v) => { self.acc += v; self.iptr += 1},
-            Op::Jmp(v) => { self.iptr = (self.iptr as isize + v) as usize },
+        if self.iptr == reversed_index.unwrap_or(usize::MAX) {
+            match inst.op {
+                Op::Jmp(_) => { self.iptr += 1},
+                Op::Acc(v) => { self.acc += v; self.iptr += 1},
+                Op::Nop(v) => { self.iptr = (self.iptr as isize + v) as usize },
+            }
+        } else {
+            match inst.op {
+                Op::Nop(_) => { self.iptr += 1},
+                Op::Acc(v) => { self.acc += v; self.iptr += 1},
+                Op::Jmp(v) => { self.iptr = (self.iptr as isize + v) as usize },
+            }
         }
+    }
+
+    fn reset(&mut self) {
+        for mut op in &mut self.instructions {
+            op.seen = false;
+        }
+        self.iptr = 0;
+        self.acc = 0;
     }
 }
 
+#[derive(Copy, Clone)]
 struct Instruction {
     op: Op,
     seen: bool,
@@ -69,12 +100,11 @@ struct Instruction {
 
 impl Instruction {
     fn from_string(input: &str) -> Instruction {
-        let result = Instruction { op: Op::from_string(input), seen: false };
-        println!("{}", result);
-        result
+        Instruction { op: Op::from_string(input), seen: false }
     }
 }
 
+#[derive(Copy, Clone)]
 enum Op {
     Nop(isize),
     Acc(isize),
@@ -85,14 +115,12 @@ impl Op {
     fn from_string(input: &str) -> Op {
         let mut parts = input.split(' ');
 
-        let result = match parts.next().expect("No Parts") {
+        match parts.next().expect("No Parts") {
             "nop" => Self::Nop(parts.next().expect("Missing second part").parse::<isize>().expect("Parse Error")),
             "acc" => Self::Acc(parts.next().expect("Missing second part").parse::<isize>().expect("Parse Error")),
             "jmp" => Self::Jmp(parts.next().expect("Missing second part").parse::<isize>().expect("Parse Error")),
             _ => panic!("invalid opcode"),
-        };
-
-        result
+        }
     }
 }
 
