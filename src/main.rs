@@ -16,6 +16,7 @@ use y2020::day9::*;
 use y2020::day10::*;
 use y2020::day11::*;
 use y2020::day12::*;
+use y2020::day13::*;
 
 use crate::day::Day as DayTrait;
 
@@ -49,6 +50,7 @@ fn full_test()
         Box::new(Day10::new()),
         Box::new(Day11::new()),
         Box::new(Day12::new()),
+        Box::new(Day13::new()),
     ];
 
     let construction_time = construction_start.elapsed();
