@@ -11,8 +11,8 @@ impl Day14 {
     pub fn new() -> Day14 {
         let input = fs::read_to_string("src/y2020/input14").expect("File Read Error");
     
-        let input = "mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X\nmem[8] = 11\nmem[7] = 101\nmem[8] = 0";
-        let input = "mask = 000000000000000000000000000000X1001X\nmem[42] = 100\nmask = 00000000000000000000000000000000X0XX\nmem[26] = 1";
+        //let input = "mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X\nmem[8] = 11\nmem[7] = 101\nmem[8] = 0";
+        //let input = "mask = 000000000000000000000000000000X1001X\nmem[42] = 100\nmask = 00000000000000000000000000000000X0XX\nmem[26] = 1";
 
         let mut lines = input.trim().split('\n').map(|s| s.trim());
 
@@ -24,12 +24,20 @@ impl Day14 {
     fn memory_total(&self) -> usize {
         self.memory.values().sum()
     }
+    
+    fn print_memory(&self) {
+        println!("===================");
+        for key in self.memory.keys() {
+            println!("mem[{}]: {}", key, self.memory[key])
+        }
+        println!("===================");
+    }
 }
 
 impl Day for Day14 {
     fn day_name(&self) -> String { String::from("14") }
     fn answer1(&self) -> String { String::from("14839536808842") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("4215284199669") }
 
     fn solve(&mut self) -> (String, String) {
         for i in &self.instructions {
@@ -49,20 +57,21 @@ impl Day for Day14 {
 
         // Part 2
         for i in &self.instructions {
-            println!("{}", i);
+            //println!("{}", i);
             match i {
                 Instruction::SetMask(mask) => {
                     self.mask = *mask;
                 },
                 Instruction::SetMem(addr, value) => {
                     for address in calculate_addresses(*addr, self.mask) {
-                        println!("  Address: {}", address);
+                        //println!("  Address: {}", address);
                         self.memory.insert(address, *value);
                     }
                 }
             }
+            //self.print_memory();
         }
-        let part2 = 0;
+        let part2 = self.memory_total();
 
         println!("{:?}", (part1.to_string(), part2.to_string()));
         (part1.to_string(), part2.to_string())
@@ -70,11 +79,12 @@ impl Day for Day14 {
 }
 
 fn calculate_addresses(address: usize, mask: [BitMaskItem; 36]) -> Vec<usize> {
+    // And I thought part one was opimisation bait. Wrestled a lot with the
+    // borrow checker here, :(
     let address_bits = format!("{:036b}", address);
-    println!("Address: {}", address_bits);
+    //println!("Address: {}", address_bits);
     let mut addresses = vec![address_bits];
     for (i, bit) in mask.iter().enumerate() {
-        println!("bit {} ({})", i, bit);
         match bit {
             // What the
             BitMaskItem::One => {
