@@ -1,4 +1,4 @@
-﻿use std::{fs, fmt::{Display, Binary}, collections::HashMap, ops::BitAnd};
+﻿use std::{fs, fmt::Display, collections::HashMap};
 use super::super::day::Day;
 
 pub struct Day14 {
@@ -14,7 +14,7 @@ impl Day14 {
         //let input = "mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X\nmem[8] = 11\nmem[7] = 101\nmem[8] = 0";
         //let input = "mask = 000000000000000000000000000000X1001X\nmem[42] = 100\nmask = 00000000000000000000000000000000X0XX\nmem[26] = 1";
 
-        let mut lines = input.trim().split('\n').map(|s| s.trim());
+        let lines = input.trim().split('\n').map(|s| s.trim());
 
         let instructions = lines.map(Instruction::from_string).collect();
 
@@ -23,14 +23,6 @@ impl Day14 {
 
     fn memory_total(&self) -> usize {
         self.memory.values().sum()
-    }
-    
-    fn print_memory(&self) {
-        println!("===================");
-        for key in self.memory.keys() {
-            println!("mem[{}]: {}", key, self.memory[key])
-        }
-        println!("===================");
     }
 }
 
@@ -41,7 +33,6 @@ impl Day for Day14 {
 
     fn solve(&mut self) -> (String, String) {
         for i in &self.instructions {
-            //println!("{}", i);
             match i {
                 Instruction::SetMask(mask) => {
                     self.mask = *mask;
@@ -57,7 +48,6 @@ impl Day for Day14 {
 
         // Part 2
         for i in &self.instructions {
-            //println!("{}", i);
             match i {
                 Instruction::SetMask(mask) => {
                     self.mask = *mask;
@@ -69,7 +59,6 @@ impl Day for Day14 {
                     }
                 }
             }
-            //self.print_memory();
         }
         let part2 = self.memory_total();
 
@@ -79,8 +68,6 @@ impl Day for Day14 {
 }
 
 fn calculate_addresses(address: usize, mask: [BitMaskItem; 36]) -> Vec<usize> {
-    // And I thought part one was opimisation bait. Wrestled a lot with the
-    // borrow checker here, :(
     let address_bits = format!("{:036b}", address);
     //println!("Address: {}", address_bits);
     let mut addresses = vec![address_bits];
@@ -121,11 +108,7 @@ fn apply_mask(value: usize, mask: [BitMaskItem; 36]) -> usize {
         }
     }).collect();
 
-    let result = usize::from_str_radix(&result_bits, 2).expect("");
-    //println!("Val : {}  (decimal {})", value_bits, value);
-    //println!("Mask: {}", mask.map(|b| b.to_string()).join(""));
-    //println!("Resu: {} (decimal {})", result_bits, result);
-    result
+    usize::from_str_radix(&result_bits, 2).expect("")
 }
 
 enum Instruction {
