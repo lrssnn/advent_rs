@@ -62,7 +62,7 @@ impl Day for Day14 {
         }
         let part2 = self.memory_total();
 
-        println!("{:?}", (part1.to_string(), part2.to_string()));
+        //println!("{:?}", (part1.to_string(), part2.to_string()));
         (part1.to_string(), part2.to_string())
     }
 }
