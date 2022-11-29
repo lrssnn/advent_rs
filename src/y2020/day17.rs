@@ -48,8 +48,10 @@ impl Cube {
         // input will have multiple lines
         let mut lines: Vec<_> = input.split('\n').collect();
         // Pad empty rows on the top and bottom
-        let width = lines[0].len();
-        cells_rows.insert(0, );
+        let width = lines[0].len() + 2;
+
+        let mut rows = vec![Cell::off_row(width)];
+
         let mut cells_rows = lines.iter().map(|line| {
             let mut cells = line.chars().map(|c| Cell::from_char(&c)).collect::<Vec<_>>();
             // Pad zeroes on the edges to simplify checking later
@@ -57,8 +59,12 @@ impl Cube {
             cells.push(Cell::from_char(&'.'));
             cells
         }).collect::<Vec<_>>();
-        let cells = vec![cells_rows]; // always 2d input
-        Cube { extents_z: 1, cells }
+
+        rows.append(&mut cells_rows);
+
+        rows.push(Cell::off_row(width));
+
+        Cube { cells: vec![Cell::off_layer(width), rows, Cell::off_layer(width)] }
     }
     
     /*
@@ -72,21 +78,36 @@ impl Cell {
     fn from_char(input: &char) -> Cell {
         Cell { state: input.eq(&'#') }
     }
+
+    fn off() -> Cell { Cell { state: false } }
+
+    fn off_row(len: usize) -> Vec<Cell> {
+        let mut r = vec![];
+        for _ in 0..len { r.push(Cell::off()) }
+        r
+    }
+
+    fn off_layer(width: usize) -> Vec<Vec<Cell>> {
+        let mut r = vec![];
+        for _ in 0..width { r.push(Cell::off_row(width)) }
+        r
+    }
 }
 
 impl Display for Cube {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> { 
-        for layer in 0..((2*self.extents_z)-1) {
-            let z_label = layer as isize - self.extents_z as isize;
-            writeln!(f, "z = {}", z_label);
+        let mut z_depth = 0 as isize - (self.cells.len() as isize / 2);
+        for layer in &self.cells {
+            writeln!(f, "z = {}", z_depth);
 
-            for row in &self.cells[layer] {
+            for row in layer {
                 for cell in row {
                     write!(f, "{}", cell);
                 }
                 writeln!(f);
             }
             writeln!(f);
+            z_depth += 1;
         }
         Ok(())
     }

@@ -19,11 +19,8 @@ use y2020::day12::*;
 use y2020::day13::*;
 use y2020::day14::*;
 use y2020::day15::*;
-<<<<<<< HEAD
 use y2020::day16::*;
-=======
 use y2020::day17::*;
->>>>>>> f829383d65e964188a193a1807b6661054ed00cd
 
 use crate::day::Day as DayTrait;
 
@@ -60,7 +57,7 @@ fn full_test()
         Box::new(Day13::new()),
         Box::new(Day14::new()),
         // Slow: Box::new(Day15::new()),
-        Box::new(Day16::new()),
+        //Box::new(Day16::new()),
         Box::new(Day17::new()),
     ];
 
