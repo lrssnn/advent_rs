@@ -67,11 +67,20 @@ impl Cube {
         Cube { cells: vec![Cell::off_layer(width), rows, Cell::off_layer(width)] }
     }
     
-    /*
     fn next_cube(&self) -> Cube {
-        Cube {}
+        // parallelisation bait
+        let z_size = self.cells.len();
+        let y_size = self.cells[0].len();
+        let x_size = self.cells[0][0].len();
+        let mut result = Cube {cells: }
+        for x in 0..x_size {
+            for y in 0..y_size {
+                for z in 0..z_size {
+                    
+                }
+            }
+        }
     }
-    */
 }
 
 impl Cell {
@@ -91,6 +100,26 @@ impl Cell {
         let mut r = vec![];
         for _ in 0..width { r.push(Cell::off_row(width)) }
         r
+    }
+    
+    fn from_area(area: [[[Cell; 3]; 3]; 3]) -> Cell {
+        let me = &area[1][1][1];
+        let mut neighbours = 0;
+        for x in 0..=2 {
+            for y in 0..=2 {
+                for z in 0..=2 {
+                    if x == 1 && y == 1 && z == 1 { continue; }
+                    if area[x][y][z].state { neighbours += 1; }
+                }
+            }
+        }
+        let new_state = if me.state {
+            neighbours == 2 || neighbours == 3
+        } else {
+            neighbours == 3
+        };
+        
+        Cell { state: new_state }
     }
 }
 
