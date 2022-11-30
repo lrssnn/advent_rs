@@ -24,6 +24,10 @@ impl Day for Day17 {
 
     fn solve(&mut self) -> (String, String) {
         println!("{}", self.cube);
+        
+        println!("Wish me luck");
+
+        println!("{}", self.cube.next_cube());
         let part1 = 0;
 
         let part2 = 0;
@@ -36,35 +40,34 @@ impl Day for Day17 {
 }
 
 struct Cube {
-    cells: Vec<Vec<Vec<Cell>>>,
-}
-
-struct Cell {
-    state: bool,
+    cells: Vec<Vec<Vec<bool>>>,
 }
 
 impl Cube {
     fn from_str(input: &str) -> Cube {
         // input will have multiple lines
         let mut lines: Vec<_> = input.split('\n').collect();
-        // Pad empty rows on the top and bottom
-        let width = lines[0].len() + 2;
+        // Pad 2 empty rows on the top and bottom
+        let width = lines[0].len() + 4;
 
-        let mut rows = vec![Cell::off_row(width)];
+        let mut rows = vec![Cube::off_row(width), Cube::off_row(width)];
 
         let mut cells_rows = lines.iter().map(|line| {
-            let mut cells = line.chars().map(|c| Cell::from_char(&c)).collect::<Vec<_>>();
+            let mut cells = line.chars().map(|c| Cube::cell_from_char(&c)).collect::<Vec<_>>();
             // Pad zeroes on the edges to simplify checking later
-            cells.insert(0, Cell::from_char(&'.'));
-            cells.push(Cell::from_char(&'.'));
+            cells.insert(0, Cube::cell_from_char(&'.'));
+            cells.insert(0, Cube::cell_from_char(&'.'));
+            cells.push(Cube::cell_from_char(&'.'));
+            cells.push(Cube::cell_from_char(&'.'));
             cells
         }).collect::<Vec<_>>();
 
         rows.append(&mut cells_rows);
 
-        rows.push(Cell::off_row(width));
+        rows.push(Cube::off_row(width));
+        rows.push(Cube::off_row(width));
 
-        Cube { cells: vec![Cell::off_layer(width), rows, Cell::off_layer(width)] }
+        Cube { cells: vec![Cube::off_layer(width, width), Cube::off_layer(width, width), rows, Cube::off_layer(width, width), Cube::off_layer(width, width)] }
     }
     
     fn next_cube(&self) -> Cube {
@@ -72,54 +75,65 @@ impl Cube {
         let z_size = self.cells.len();
         let y_size = self.cells[0].len();
         let x_size = self.cells[0][0].len();
-        let mut result = Cube {cells: }
-        for x in 0..x_size {
-            for y in 0..y_size {
-                for z in 0..z_size {
-                    
+        let mut result = Cube {cells: vec![] };
+        // empty layers on either end
+        result.cells.push(Cube::off_layer(x_size + 2, y_size + 2));
+        for z in 1..z_size-1 {
+            let mut layer = vec![];
+            // empty row at top and bottom of each layer
+            layer.push(Cube::off_row(x_size + 2));
+            for y in 1..y_size-1 {
+                let mut row = vec![];
+                // empty cell on either end of row
+                row.push(false);
+                for x in 1..x_size-1 {
+                   row.push(Cube::from_area(x, y, z, &self.cells)) 
                 }
+                row.push(false);
+                layer.push(row);
             }
+            layer.push(Cube::off_row(x_size + 2));
+            result.cells.push(layer);
         }
-    }
-}
-
-impl Cell {
-    fn from_char(input: &char) -> Cell {
-        Cell { state: input.eq(&'#') }
+        result.cells.push(Cube::off_layer(x_size + 2, y_size + 2));
+        result
     }
 
-    fn off() -> Cell { Cell { state: false } }
+    fn cell_from_char(input: &char) -> bool {
+        input.eq(&'#')
+    }
+    
+    fn cell_to_char(input: bool) -> char { if input {'#'} else {'.'}}
 
-    fn off_row(len: usize) -> Vec<Cell> {
+    fn off_row(len: usize) -> Vec<bool> {
         let mut r = vec![];
-        for _ in 0..len { r.push(Cell::off()) }
+        for _ in 0..len { r.push(false) }
         r
     }
 
-    fn off_layer(width: usize) -> Vec<Vec<Cell>> {
+    fn off_layer(width: usize, height: usize) -> Vec<Vec<bool>> {
         let mut r = vec![];
-        for _ in 0..width { r.push(Cell::off_row(width)) }
+        for _ in 0..height { r.push(Cube::off_row(width)) }
         r
     }
     
-    fn from_area(area: [[[Cell; 3]; 3]; 3]) -> Cell {
-        let me = &area[1][1][1];
+    fn from_area(x_c :usize, y_c: usize, z_c: usize, area: &Vec<Vec<Vec<bool>>>) -> bool {
+        let me = area[z_c][y_c][x_c];
         let mut neighbours = 0;
-        for x in 0..=2 {
-            for y in 0..=2 {
-                for z in 0..=2 {
-                    if x == 1 && y == 1 && z == 1 { continue; }
-                    if area[x][y][z].state { neighbours += 1; }
+        for x in x_c-1..=x_c+1 {
+            for y in y_c-1..=y_c+1 {
+                for z in z_c-1..=z_c+1 {
+                    if x == x_c && y == y_c && z == z_c { continue; }
+                    if area[z][y][x] { neighbours += 1; }
                 }
             }
         }
-        let new_state = if me.state {
+
+        if me {
             neighbours == 2 || neighbours == 3
         } else {
             neighbours == 3
-        };
-        
-        Cell { state: new_state }
+        }
     }
 }
 
@@ -131,7 +145,7 @@ impl Display for Cube {
 
             for row in layer {
                 for cell in row {
-                    write!(f, "{}", cell);
+                    write!(f, "{}", Cube::cell_to_char(*cell));
                 }
                 writeln!(f);
             }
@@ -139,11 +153,5 @@ impl Display for Cube {
             z_depth += 1;
         }
         Ok(())
-    }
-}
-
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> { 
-        write!(f, "{}", if self.state { '#' } else { '.' })
     }
 }
