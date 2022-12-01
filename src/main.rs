@@ -1,26 +1,10 @@
-mod y2020;
+mod y2022;
 mod day;
 
 use std::time::Instant;
 use std::time::Duration;
 
-use y2020::day1::*;
-use y2020::day2::*;
-use y2020::day3::*;
-use y2020::day4::*;
-use y2020::day5::*;
-use y2020::day6::*;
-use y2020::day7::*;
-use y2020::day8::*;
-use y2020::day9::*;
-use y2020::day10::*;
-use y2020::day11::*;
-use y2020::day12::*;
-use y2020::day13::*;
-use y2020::day14::*;
-use y2020::day15::*;
-use y2020::day16::*;
-use y2020::day17::*;
+use y2022::day1::*;
 
 use crate::day::Day as DayTrait;
 
@@ -43,22 +27,6 @@ fn full_test()
     let construction_start = Instant::now();
     let days: Vec<Box<dyn DayTrait>> = vec! [
         Box::new(Day1::new()),
-        Box::new(Day2::new()),
-        Box::new(Day3::new()),
-        Box::new(Day4::new()),
-        Box::new(Day5::new()),
-        Box::new(Day6::new()),
-        Box::new(Day7::new()),
-        Box::new(Day8::new()),
-        Box::new(Day9::new()),
-        Box::new(Day10::new()),
-        Box::new(Day11::new()),
-        Box::new(Day12::new()),
-        Box::new(Day13::new()),
-        Box::new(Day14::new()),
-        // Slow: Box::new(Day15::new()),
-        //Box::new(Day16::new()),
-        Box::new(Day17::new()),
     ];
 
     let construction_time = construction_start.elapsed();
