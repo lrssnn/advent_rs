@@ -14,7 +14,7 @@ impl Day1 {
         let sums = input.trim().split("\n\n") // split elves
             .map(|lines| lines
                 .split('\n')
-                .map(|line| line.parse::<usize>().expect("Parse Error..."))
+                .map(|line| line.trim().parse::<usize>().expect("Parse Error..."))
                 .sum()
             ).collect();
         Day1 {sums}

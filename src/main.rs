@@ -5,6 +5,7 @@ use std::time::Instant;
 use std::time::Duration;
 
 use y2022::day1::*;
+use y2022::day2::*;
 
 use crate::day::Day as DayTrait;
 
@@ -27,6 +28,7 @@ fn full_test()
     let construction_start = Instant::now();
     let days: Vec<Box<dyn DayTrait>> = vec! [
         Box::new(Day1::new()),
+        Box::new(Day2::new()),
     ];
 
     let construction_time = construction_start.elapsed();
