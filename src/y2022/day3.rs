@@ -47,6 +47,8 @@ impl Day for Day3 {
 struct Rucksack {
     compartment1: HashSet<char>,
     compartment2: HashSet<char>,
+    // equivalent to compartment1 union compartment2
+    items: HashSet<char>,
 }
 
 impl Rucksack {
@@ -55,7 +57,8 @@ impl Rucksack {
         //println!("{} -> {} | {}", input, &input[0..divider], &input[divider+1..]);
         let compartment1 = HashSet::from_iter(input[0..divider].chars());
         let compartment2 = HashSet::from_iter(input[divider..].chars());
-        Rucksack {compartment1, compartment2}
+        let items = compartment1.union(&compartment2).copied().collect();
+        Rucksack {compartment1, compartment2, items}
     }
 
     fn outlier(&self) -> char {
@@ -80,16 +83,12 @@ impl Rucksack {
         println!("{}", rucks[1]);
         println!("{}", rucks[2]);
         */
-        // This map to dereference sucks...
-        let a: HashSet<char> = rucks[0].compartment1.union(&rucks[0].compartment2).copied().collect();
-        let b: HashSet<char> = rucks[1].compartment1.union(&rucks[1].compartment2).copied().collect();
-        let c: HashSet<&char> = rucks[2].compartment1.union(&rucks[2].compartment2).collect();
-        **a.
-            intersection(&b)
-            .collect::<HashSet<_>>()
-            .intersection(&c)
-            .next()
-            .expect("No Common element...")
+        for item in &rucks[0].items {
+            if rucks[1].items.contains(&item) && rucks[2].items.contains(&item) {
+                return *item;
+            }
+        }
+        panic!("No shared item!");
     }
 }
 
