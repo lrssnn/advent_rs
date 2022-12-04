@@ -1,4 +1,4 @@
-﻿use std::{collections::HashSet, fmt::Display, ops::{Range, RangeInclusive}};
+﻿use std::{fmt::Display, ops::RangeInclusive};
 use super::super::day::Day;
 
 pub struct Day4
@@ -50,15 +50,15 @@ impl Assignment {
     }
 
     fn has_redundant(&self) -> bool {
-        (self.a.contains(&self.b.start()) && self.a.contains(&self.b.end()))
+        (self.a.contains(self.b.start()) && self.a.contains(self.b.end()))
         ||
-        (self.b.contains(&self.a.start()) && self.b.contains(&self.a.end()))
+        (self.b.contains(self.a.start()) && self.b.contains(self.a.end()))
     }
 
     fn has_overlap(&self) -> bool {
-        (self.a.contains(&self.b.start()) || self.a.contains(&self.b.end()))
+        (self.a.contains(self.b.start()) || self.a.contains(self.b.end()))
         ||
-        (self.b.contains(&self.a.start()) || self.b.contains(&self.a.end()))
+        (self.b.contains(self.a.start()) || self.b.contains(self.a.end()))
     }
 }
 
