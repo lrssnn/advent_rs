@@ -1,5 +1,4 @@
-﻿use std::fs;
-use super::super::day::Day;
+﻿use super::super::day::Day;
 
 pub struct Day1
 {
@@ -9,7 +8,7 @@ pub struct Day1
 impl Day1 {
     pub fn new() -> Day1
     {
-        let input = fs::read_to_string("src/y2022/input1").expect("File Read Error");
+        let input = include_str!("input1");
         //let input = "1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000";
         let sums = input.trim().split("\n\n") // split elves
             .map(|lines| lines

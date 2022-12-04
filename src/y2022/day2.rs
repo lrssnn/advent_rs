@@ -1,4 +1,4 @@
-﻿use std::{fs, fmt::Display};
+﻿use std::fmt::Display;
 use super::super::day::Day;
 
 pub struct Day2
@@ -9,7 +9,7 @@ pub struct Day2
 impl Day2 {
     pub fn new() -> Day2
     {
-        let input = fs::read_to_string("src/y2022/input2").expect("File Read Error");
+        let input = include_str!("input2");
         //let input = "A Y\nB X\nC Z";
 
         let turns = input.trim().split('\n')

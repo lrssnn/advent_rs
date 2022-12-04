@@ -1,4 +1,4 @@
-﻿use std::{fs, collections::HashSet, fmt::Display};
+﻿use std::{collections::HashSet, fmt::Display};
 use super::super::day::Day;
 
 pub struct Day3
@@ -10,7 +10,7 @@ impl Day3 {
     #[allow(dead_code)]
     pub fn new() -> Day3
     {
-        let input = fs::read_to_string("src/y2022/input3").expect("File Read Error");
+        let input = include_str!("input3");
         //let input = "vJrwpWtwJgWrhcsFMMfFFhFp\njqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\nPmmdzqPrVvPwwTWBwg\nwMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\nttgJtRGJQctTZtZT\nCrZsJsPPZsGzwwsLwLmpwMDw";
 
         let lines = input.trim().split('\n');
@@ -84,7 +84,7 @@ impl Rucksack {
         println!("{}", rucks[2]);
         */
         for item in &rucks[0].items {
-            if rucks[1].items.contains(&item) && rucks[2].items.contains(&item) {
+            if rucks[1].items.contains(item) && rucks[2].items.contains(item) {
                 return *item;
             }
         }
