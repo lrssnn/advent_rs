@@ -12,6 +12,8 @@ use y2022::day3::*;
 use y2022::day4::*;
 use y2022::day5::*;
 use y2022::day6::*;
+use y2022::day7::*;
+use y2022::day8::*;
 
 use crate::day::Day as DayTrait;
 
@@ -39,6 +41,8 @@ fn full_test()
         Box::new(Day4::new()),
         Box::new(Day5::new()),
         Box::new(Day6::new()),
+        Box::new(Day7::new()),
+        Box::new(Day8::new()),
     ];
 
     let construction_time = construction_start.elapsed();
