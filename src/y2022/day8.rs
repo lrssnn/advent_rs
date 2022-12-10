@@ -35,7 +35,7 @@ impl Day for Day8 {
         let ans1 = num_visible;
         let ans2 = best_score;
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
