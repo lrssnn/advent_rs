@@ -31,7 +31,7 @@ impl Day for Day9 {
         let ans1 = self.process();
         let ans2 = self.process_long();
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
