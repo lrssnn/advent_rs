@@ -30,7 +30,7 @@ impl Day for Day10 {
         let ans1 = self.process();
         let ans2 = "ZFBFHGUP";
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }

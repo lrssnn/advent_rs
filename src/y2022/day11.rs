@@ -1,20 +1,21 @@
 ﻿use std::fmt::Display;
+use std::collections::HashMap;
 
 use super::super::day::Day;
 
 pub struct Day11
 {
-    monkeys: Vec<Monkey>,
+    monkeys: HashMap<usize, Monkey>,
 }
 
 impl Day11 {
     pub fn new() -> Day11
     {
         let input = include_str!("input11");
-        let input = include_str!("input11_example");
+        //let input = include_str!("input11_example");
 
         let monkeys = input.trim().split("\n\n")
-            .map(Monkey::from_str).collect();
+            .map(Monkey::from_str).map(|m| (m.id, m)).collect();
 
         Day11 { monkeys }
     }
@@ -22,14 +23,13 @@ impl Day11 {
 
 impl Day for Day11 {
     fn day_name(&self) -> String { String::from("11") }
-    fn answer1(&self) -> String { String::from("?") }
+    fn answer1(&self) -> String { String::from("76728") }
     fn answer2(&self) -> String { String::from("?") }
 
     fn solve(&mut self) -> (String, String)
     {
-        for monkey in &self.monkeys {
-            println!("{monkey}");
-        }
+        //for monkey in self.monkeys.values() { println!("{monkey}"); }
+
         let ans1 = self.find_active_score();
         let ans2 = 0;
 
@@ -40,12 +40,29 @@ impl Day for Day11 {
 
 impl Day11 {
     fn find_active_score(&mut self) -> usize {
-        Monkey::take_turn(0, &mut self.monkeys);
-        
-        0
+        for _round in 0..20 {
+            for active_index in 0..self.monkeys.len() {
+                // Theres no way this (clone -> act -> insert) is the right way to do this
+                let mut active_monkey = self.monkeys.get_mut(&active_index).expect("Invalid Index").clone();
+                let mut true_target = self.monkeys.get_mut(&active_monkey.true_target).expect("Invalid Index").clone();
+                let mut false_target = self.monkeys.get_mut(&active_monkey.false_target).expect("Invalid Index").clone();
+
+                active_monkey.take_turn(&mut true_target, &mut false_target, false);
+
+                self.monkeys.insert(active_monkey.true_target, true_target);
+                self.monkeys.insert(active_monkey.false_target, false_target);
+                self.monkeys.insert(active_index, active_monkey);
+            }
+        }
+
+        let mut comparisons = self.monkeys.values().map(|m| m.comparisons).collect::<Vec<_>>();
+        comparisons.sort();
+        let len = comparisons.len();
+        comparisons[len -2] * comparisons[len -1]
     }
 }
 
+#[derive(Clone)]
 struct Monkey {
     id: usize,
     items: Vec<usize>,
@@ -56,6 +73,7 @@ struct Monkey {
     comparisons: usize,
 }
 
+#[derive(Copy, Clone)]
 enum Operation {
     Mul(usize),
     Add(usize),
@@ -84,31 +102,32 @@ impl Monkey {
         }
     }
     
-    fn take_turn(active_monkey_id: usize, monkeys: &mut Vec<Monkey>) {
-        let active_monkey = &monkeys[active_monkey_id];
+    fn take_turn(&mut self, true_target: &mut Monkey, false_target: &mut Monkey, decay_worry: bool) {
+        for item in &self.items {
+            self.comparisons += 1;
+            //println!("Processing {item}");
 
-        for item in &active_monkey.items {
-            active_monkey.comparisons += 1;
-            println!("Processing {item}");
             // Inspecting the item causes stress to rise
-            let mut new_stress = active_monkey.operation.apply(*item);            
-            println!("Stress Inflated to {new_stress}");
+            let mut new_stress = self.operation.apply(*item);            
+            //println!("Stress Inflated to {new_stress}");
+
             // Stress decays
-            new_stress /= 3;
-            println!("Stress decayed to {new_stress}");
+            if decay_worry {new_stress /= 3; }
+            //println!("Stress decayed to {new_stress}");
+
             // Test worry level and distrbute
-            if new_stress % active_monkey.test_divisor == 0 {
-                println!("was divisible by {}, sending to monkey {}", active_monkey.test_divisor, active_monkey.true_target);
-                let target_items = &mut monkeys[active_monkey.true_target].items;
-                target_items.insert(new_stress, target_items.len());
+            if new_stress % self.test_divisor == 0 {
+                //println!("was divisible by {}, sending to monkey {}", self.test_divisor, true_target.id);
+                let target_index = true_target.items.len();
+                true_target.items.insert(target_index, new_stress);
             } else {
-                println!("was NOT divisible by {}, sending to monkey {}", active_monkey.test_divisor, active_monkey.false_target);
-                let target_items = &mut monkeys[active_monkey.false_target].items;
-                target_items.insert(new_stress, target_items.len());
+                //println!("was NOT divisible by {}, sending to monkey {}", self.test_divisor, false_target.id);
+                let target_index = false_target.items.len();
+                false_target.items.insert(target_index, new_stress);
             }
         }
         
-        monkeys[active_monkey_id].items = vec![];
+        self.items = vec![];
 
     }
 }
