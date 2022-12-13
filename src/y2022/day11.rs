@@ -32,9 +32,10 @@ impl Day for Day11 {
         let mut copy = self.monkeys.clone();
 
         let ans1 = Self::find_active_score(&mut self.monkeys, 20, true);
-        let ans2 = Self::find_active_score(&mut copy, 10000, false);
+        //let ans2 = Self::find_active_score(&mut copy, 10000, false);
+        let ans2 = 0;
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
