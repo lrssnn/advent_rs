@@ -21,7 +21,7 @@ impl Day12 {
         let input = include_str!("input12");
         //let input = include_str!("input12_example");
 
-        let heightmap = input.trim().split("\n")
+        let heightmap = input.trim().split('\n')
             .map(|line| line.chars().map(|c| c as u8).collect::<Vec<_>>().try_into().unwrap())
             .collect::<Vec<_>>().try_into().unwrap();
 
@@ -38,20 +38,13 @@ impl Day for Day12 {
     {
         let (start, target) = self.find_endpoints();
 
-        let path = self.a_star(start, target).unwrap();
+        let path = self.find_shortest_path(&vec![start], target);
 
         let ans1 = path.len() - 1; // minus one because we count nodes and answer is in STEPS (not including starting node)
 
         let all_starts = self.find_startpoints();
-        let mut best_path = path;
-        for &start in &all_starts {
-            if let Some(path) = self.a_star(start, target) {
-                if path.len() < best_path.len() {
-                    best_path = path;
-                }
-            }
-        }
-        let ans2 = best_path.len() - 1;
+        let path_two = self.find_shortest_path(&all_starts, target);
+        let ans2 = path_two.len() - 1;
 
         //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
@@ -60,23 +53,19 @@ impl Day for Day12 {
 
 impl Day12 {
     fn find_endpoints(&self) -> (Point, Point){
-        let mut start_x = 0;
-        let mut start_y = 0;
-        let mut target_x = 0;
-        let mut target_y = 0;
+        let mut start = Point(0, 0);
+        let mut target = Point(0, 0);
 
         for y in 0..self.heightmap.len() { 
             for x in 0..self.heightmap[y].len() {
-                if self.heightmap[y][x] == 'S' as u8 {
-                    start_x = x;
-                    start_y = y;
-                } else if self.heightmap[y][x] == 'E' as u8 {
-                    target_x = x;
-                    target_y = y;
+                if self.heightmap[y][x] == b'S' {
+                    start = Point(x, y);
+                } else if self.heightmap[y][x] == b'E' {
+                    target = Point(x, y);
                 }
             }
         }
-        (Point(start_x, start_y), Point(target_x, target_y))
+        (start, target)
     }
     
     fn find_startpoints(&self) -> Vec<Point> {
@@ -84,21 +73,35 @@ impl Day12 {
 
         for y in 0..self.heightmap.len() { 
             for x in 0..self.heightmap[y].len() {
-                if self.heightmap[y][x] == 'a' as u8 {
+                if self.heightmap[y][x] == b'a' {
                     result.push(Point(x ,y));
                 }
             }
         }
         result
     }
+    
+    fn find_shortest_path(&self, start: &Vec<Point>, target: Point) -> Vec<Point> {
+        let mut best_path = vec![];
+        for &point in start {
+            if let Some(path) = self.a_star(point, target, if best_path.is_empty() { usize::MAX } else { best_path.len()}) {
+                if best_path.is_empty() || path.len() < best_path.len() {
+                    best_path = path;
+                }
+            }
+        }
+        
+        best_path
+    }
 
-    fn a_star(&self, start: Point, target: Point) -> Option<Vec<Point>> {
+
+    fn a_star(&self, start: Point, target: Point, max_len: usize) -> Option<Vec<Point>> {
         // Copied from pseudoCode on wikipedia, plus slight rust help from `pathfinding` crate source.
         // But that is more optimised. Complate lack of borrows here in favour of copies feels so not rust
 
         // The set of discovered points that need to be expanded. Intially, only start is known.
         // If this becomes a BinaryHeap, it becomes faster to find 'current' below
-        let mut open_set: HashSet<Point> = HashSet::new();
+        let mut open_set = HashSet::new();
         open_set.insert(start);
 
         // For Point p, came_from[p] is the point immediately preceding it on the cheapest path from
@@ -111,20 +114,23 @@ impl Day12 {
 
         // f_score would be g_score modified by a heuristic, but we don't have one, so just ignore it
 
-        while open_set.len() > 0 {
+        while !open_set.is_empty() {
             let current: Point = *open_set.iter()
                 .min_by_key(|&point| g_score.get(point).unwrap_or(&usize::MAX))
                 .unwrap();
 
             if current == target {
-                return Some(Self::reconstruct_path(came_from, current));
+                return Some(Self::reconstruct_path(&came_from, current));
             }
 
             open_set.remove(&current);
             for neighbour in self.neighbours(current) {
                 // We would calculate weight here, but we don't have any
                 let tentative_g_score = g_score.get(&current).unwrap() + 1;
-                if tentative_g_score < *g_score.get(&neighbour).unwrap_or(&usize::MAX) {
+                // Give up early if we have gone longer than our currently known shortest
+                let give_up = tentative_g_score >= max_len;
+                
+                if !give_up && tentative_g_score < *g_score.get(&neighbour).unwrap_or(&usize::MAX) {
                     came_from.insert(neighbour, current);
                     g_score.insert(neighbour, tentative_g_score);
                     // Update f_score here if we include it
@@ -139,30 +145,13 @@ impl Day12 {
     fn neighbours(&self, p: Point) -> Vec<Point> {
         let mut result = vec![];
         let max_height = self.get_height(p) + 1; // We can step one higher than our current height
-
-        let max_y = self.heightmap.len() -1 ;
-        let max_x = self.heightmap[0].len() -1 ;
-        // We can only go at most one higher than 'mine'
-        // Down (y + 1)
-        if p.1 != max_y && self.get_height(p.down()) <= max_height {
-            result.push(Point(p.0, p.1 + 1));
+        
+        for neighbour in p.neighbours() {
+            if self.get_height(neighbour) <= max_height {
+                result.push(neighbour)
+            }
         }
-
-        // Up (y - 1)
-        if p.1 != 0 && self.get_height(p.up()) <= max_height {
-            result.push(Point(p.0, p.1 - 1));
-        }
-
-        // Left (x - 1)
-        if p.0 != 0 && self.get_height(p.left()) <= max_height {
-            result.push(Point(p.0 - 1, p.1));
-        }
-
-        // Right (x + 1)
-        if p.0 != max_x && self.get_height(p.right()) <= max_height {
-            result.push(Point(p.0 + 1, p.1));
-        }
-
+        
         result
     }
 
@@ -170,13 +159,13 @@ impl Day12 {
         let mut height = self.heightmap[point.1][point.0];
 
         // Correct for endpoints. This is horrible lol
-        if height == 'S' as u8 { height = 'a' as u8 };
-        if height == 'E' as u8 { height = 'z' as u8 };
+        if height == b'S' { height = b'a' };
+        if height == b'E' { height = b'z' };
 
         height
     }
 
-    fn reconstruct_path(came_from: HashMap<Point, Point>, endpoint: Point) -> Vec<Point> {
+    fn reconstruct_path(came_from: &HashMap<Point, Point>, endpoint: Point) -> Vec<Point> {
         // Following the path set out in came_from
         let mut result: Vec<Point> = vec![];
         let mut current = endpoint;
@@ -195,10 +184,23 @@ impl Day12 {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct Point(usize, usize);
 
 impl Point {
+    fn neighbours(&self) -> Vec<Point> {
+        let mut result = vec![];
+        // Down (y + 1)
+        if self.1 != HEIGHT - 1 { result.push(self.down()); }
+        // Up (y - 1)
+        if self.1 != 0 { result.push(self.up()); }
+        // Left (x - 1)
+        if self.0 != 0 { result.push(self.left()); }
+        // Right (x + 1)
+        if self.0 != WIDTH - 1 { result.push(self.right()); }
+        
+        result
+    }
     // Can panic, maybe nicer to move checks into here?
     fn down(&self) -> Point { Point(self.0, self.1 + 1) }
     fn up(&self) -> Point { Point(self.0, self.1 - 1) }
