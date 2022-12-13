@@ -19,7 +19,6 @@ impl Day12 {
     pub fn new() -> Day12
     {
         let input = include_str!("input12");
-        //println!("{},{}", input.split("\n").count(), input.split("\n").next().expect("!").len());
         //let input = include_str!("input12_example");
 
         let heightmap = input.trim().split("\n")
@@ -33,32 +32,28 @@ impl Day12 {
 impl Day for Day12 {
     fn day_name(&self) -> String { String::from("12") }
     fn answer1(&self) -> String { String::from("361") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("354") }
 
     fn solve(&mut self) -> (String, String)
     {
-        // for line in self.heightmap { 
-        //     for c in line {
-        //         print!("{}", c as char);
-        //     }
-        //     println!();
-        // }
-
-
         let (start, target) = self.find_endpoints();
-        //println!("{start} -> {target}");
 
         let path = self.a_star(start, target).unwrap();
 
-        // for point in &path {
-        //     println!("{point}");
-        // }
-
         let ans1 = path.len() - 1; // minus one because we count nodes and answer is in STEPS (not including starting node)
-        let ans2 = 0;
 
-        //println!("{},{},{}", 'E' as u8, 'E' as usize, 'z' as u8);
-        println!("{ans1}, {ans2}");
+        let all_starts = self.find_startpoints();
+        let mut best_path = path;
+        for &start in &all_starts {
+            if let Some(path) = self.a_star(start, target) {
+                if path.len() < best_path.len() {
+                    best_path = path;
+                }
+            }
+        }
+        let ans2 = best_path.len() - 1;
+
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
@@ -83,9 +78,21 @@ impl Day12 {
         }
         (Point(start_x, start_y), Point(target_x, target_y))
     }
+    
+    fn find_startpoints(&self) -> Vec<Point> {
+        let mut result = vec![];
 
+        for y in 0..self.heightmap.len() { 
+            for x in 0..self.heightmap[y].len() {
+                if self.heightmap[y][x] == 'a' as u8 {
+                    result.push(Point(x ,y));
+                }
+            }
+        }
+        result
+    }
 
-    fn a_star(&self, start: Point, target: Point, ) -> Option<Vec<Point>> {
+    fn a_star(&self, start: Point, target: Point) -> Option<Vec<Point>> {
         // Copied from pseudoCode on wikipedia, plus slight rust help from `pathfinding` crate source.
         // But that is more optimised. Complate lack of borrows here in favour of copies feels so not rust
 
@@ -109,8 +116,6 @@ impl Day12 {
                 .min_by_key(|&point| g_score.get(point).unwrap_or(&usize::MAX))
                 .unwrap();
 
-            //println!("Inspecting {current}");
-
             if current == target {
                 return Some(Self::reconstruct_path(came_from, current));
             }
@@ -118,7 +123,6 @@ impl Day12 {
             open_set.remove(&current);
             for neighbour in self.neighbours(current) {
                 // We would calculate weight here, but we don't have any
-                //print!("  Neighbour {neighbour}: ");
                 let tentative_g_score = g_score.get(&current).unwrap() + 1;
                 if tentative_g_score < *g_score.get(&neighbour).unwrap_or(&usize::MAX) {
                     came_from.insert(neighbour, current);
@@ -126,9 +130,7 @@ impl Day12 {
                     // Update f_score here if we include it
                     
                     open_set.insert(neighbour);
-                    //print!("inserted")
                 }
-                //println!();
             }
         }
         None
@@ -161,14 +163,6 @@ impl Day12 {
             result.push(Point(p.0 + 1, p.1));
         }
 
-        //println!("Neighbours of {p}({})", (max_height - 1) as char);
-        /*
-        for r in &result {
-            print!("{r}({}),", self.heightmap[r.1][r.0] as char);
-        }
-        println!();
-        */
-
         result
     }
 
@@ -184,8 +178,6 @@ impl Day12 {
 
     fn reconstruct_path(came_from: HashMap<Point, Point>, endpoint: Point) -> Vec<Point> {
         // Following the path set out in came_from
-        //println!("making path to: {endpoint}");
-
         let mut result: Vec<Point> = vec![];
         let mut current = endpoint;
         loop {
@@ -193,7 +185,6 @@ impl Day12 {
             match came_from.get(&current) {
                 Some(&parent) => {
                     current = parent;
-                    //println!("new current: {current}");
                 },
                 None => {
                     result.reverse();
