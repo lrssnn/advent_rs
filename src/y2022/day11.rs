@@ -29,9 +29,10 @@ impl Day for Day11 {
     fn solve(&mut self) -> (String, String)
     {
         //for monkey in self.monkeys.values() { println!("{monkey}"); }
+        let mut copy = self.monkeys.clone();
 
-        let ans1 = self.find_active_score();
-        let ans2 = 0;
+        let ans1 = Self::find_active_score(&mut self.monkeys, 20, true);
+        let ans2 = Self::find_active_score(&mut copy, 10000, false);
 
         println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
@@ -39,23 +40,23 @@ impl Day for Day11 {
 }
 
 impl Day11 {
-    fn find_active_score(&mut self) -> usize {
-        for _round in 0..20 {
-            for active_index in 0..self.monkeys.len() {
+    fn find_active_score(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, decay_worry: bool) -> usize {
+        for _round in 0..rounds {
+            for active_index in 0..monkeys.len() {
                 // Theres no way this (clone -> act -> insert) is the right way to do this
-                let mut active_monkey = self.monkeys.get_mut(&active_index).expect("Invalid Index").clone();
-                let mut true_target = self.monkeys.get_mut(&active_monkey.true_target).expect("Invalid Index").clone();
-                let mut false_target = self.monkeys.get_mut(&active_monkey.false_target).expect("Invalid Index").clone();
+                let mut active_monkey = monkeys.get_mut(&active_index).expect("Invalid Index").clone();
+                let mut true_target = monkeys.get_mut(&active_monkey.true_target).expect("Invalid Index").clone();
+                let mut false_target = monkeys.get_mut(&active_monkey.false_target).expect("Invalid Index").clone();
 
-                active_monkey.take_turn(&mut true_target, &mut false_target, false);
+                active_monkey.take_turn(&mut true_target, &mut false_target, decay_worry);
 
-                self.monkeys.insert(active_monkey.true_target, true_target);
-                self.monkeys.insert(active_monkey.false_target, false_target);
-                self.monkeys.insert(active_index, active_monkey);
+                monkeys.insert(active_monkey.true_target, true_target);
+                monkeys.insert(active_monkey.false_target, false_target);
+                monkeys.insert(active_index, active_monkey);
             }
         }
 
-        let mut comparisons = self.monkeys.values().map(|m| m.comparisons).collect::<Vec<_>>();
+        let mut comparisons = monkeys.values().map(|m| m.comparisons).collect::<Vec<_>>();
         comparisons.sort();
         let len = comparisons.len();
         comparisons[len -2] * comparisons[len -1]
@@ -65,7 +66,7 @@ impl Day11 {
 #[derive(Clone)]
 struct Monkey {
     id: usize,
-    items: Vec<usize>,
+    items: Vec<f64>,
     operation: Operation,
     test_divisor: usize,
     true_target: usize,
@@ -75,8 +76,8 @@ struct Monkey {
 
 #[derive(Copy, Clone)]
 enum Operation {
-    Mul(usize),
-    Add(usize),
+    Mul(f64),
+    Add(f64),
     Square,
 }
 
@@ -112,11 +113,11 @@ impl Monkey {
             //println!("Stress Inflated to {new_stress}");
 
             // Stress decays
-            if decay_worry {new_stress /= 3; }
+            if decay_worry {new_stress = (new_stress/3.0).floor(); }
             //println!("Stress decayed to {new_stress}");
 
             // Test worry level and distrbute
-            if new_stress % self.test_divisor == 0 {
+            if new_stress % (self.test_divisor as f64) == 0.0 {
                 //println!("was divisible by {}, sending to monkey {}", self.test_divisor, true_target.id);
                 let target_index = true_target.items.len();
                 true_target.items.insert(target_index, new_stress);
@@ -139,14 +140,14 @@ impl Operation {
             "*" => if parts[5].eq("old") {
                     Operation::Square
                 } else {
-                    Operation::Mul(parts[5].parse::<usize>().expect("Invalid Operand"))
+                    Operation::Mul(parts[5].parse::<f64>().expect("Invalid Operand"))
                 },
-            "+" => Operation::Add(parts[5].parse::<usize>().expect("Invalid Operand")),
+            "+" => Operation::Add(parts[5].parse::<f64>().expect("Invalid Operand")),
             _ => panic!("Invalid Operation"),
         }
     }
     
-    fn apply(&self, op: usize) -> usize {
+    fn apply(&self, op: f64) -> f64 {
         match self {
             Operation::Mul(x) => op * x,
             Operation::Add(x) => op + x,
@@ -169,6 +170,6 @@ impl Display for Monkey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Monkey {} | Op: {} | Test: Divisible By {} | True: {} False {}",
             self.id, self.operation, self.test_divisor, self.true_target, self.false_target).expect("!");
-        write!(f, "  {}", self.items.iter().map(usize::to_string).collect::<Vec<_>>().join(", "))
+        write!(f, "  {}", self.items.iter().map(f64::to_string).collect::<Vec<_>>().join(", "))
     }
 }
