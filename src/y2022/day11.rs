@@ -24,16 +24,17 @@ impl Day11 {
 impl Day for Day11 {
     fn day_name(&self) -> String { String::from("11") }
     fn answer1(&self) -> String { String::from("76728") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("21553910156") }
 
     fn solve(&mut self) -> (String, String)
     {
         //for monkey in self.monkeys.values() { println!("{monkey}"); }
         let mut copy = self.monkeys.clone();
+        
+        let worry_mod = self.monkeys.values().map(|monkey| monkey.test_divisor).product();
 
-        let ans1 = Self::find_active_score(&mut self.monkeys, 20, true);
-        //let ans2 = Self::find_active_score(&mut copy, 10000, false);
-        let ans2 = 0;
+        let ans1 = Self::find_active_score(&mut self.monkeys, 20, true, worry_mod);
+        let ans2 = Self::find_active_score(&mut copy, 10000, false, worry_mod);
 
         //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
@@ -41,7 +42,7 @@ impl Day for Day11 {
 }
 
 impl Day11 {
-    fn find_active_score(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, decay_worry: bool) -> usize {
+    fn find_active_score(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, decay_worry: bool, worry_mod: usize) -> usize {
         for _round in 0..rounds {
             for active_index in 0..monkeys.len() {
                 // Theres no way this (clone -> act -> insert) is the right way to do this
@@ -49,7 +50,7 @@ impl Day11 {
                 let mut true_target = monkeys.get_mut(&active_monkey.true_target).expect("Invalid Index").clone();
                 let mut false_target = monkeys.get_mut(&active_monkey.false_target).expect("Invalid Index").clone();
 
-                active_monkey.take_turn(&mut true_target, &mut false_target, decay_worry);
+                active_monkey.take_turn(&mut true_target, &mut false_target, decay_worry, worry_mod);
 
                 monkeys.insert(active_monkey.true_target, true_target);
                 monkeys.insert(active_monkey.false_target, false_target);
@@ -67,7 +68,7 @@ impl Day11 {
 #[derive(Clone)]
 struct Monkey {
     id: usize,
-    items: Vec<f64>,
+    items: Vec<usize>,
     operation: Operation,
     test_divisor: usize,
     true_target: usize,
@@ -77,8 +78,8 @@ struct Monkey {
 
 #[derive(Copy, Clone)]
 enum Operation {
-    Mul(f64),
-    Add(f64),
+    Mul(usize),
+    Add(usize),
     Square,
 }
 
@@ -104,7 +105,7 @@ impl Monkey {
         }
     }
     
-    fn take_turn(&mut self, true_target: &mut Monkey, false_target: &mut Monkey, decay_worry: bool) {
+    fn take_turn(&mut self, true_target: &mut Monkey, false_target: &mut Monkey, decay_worry: bool, worry_mod: usize) {
         for item in &self.items {
             self.comparisons += 1;
             //println!("Processing {item}");
@@ -112,13 +113,16 @@ impl Monkey {
             // Inspecting the item causes stress to rise
             let mut new_stress = self.operation.apply(*item);            
             //println!("Stress Inflated to {new_stress}");
+            
+            // Clamp worry based on mod of all divisors multiplied
+            new_stress %= worry_mod;
 
             // Stress decays
-            if decay_worry {new_stress = (new_stress/3.0).floor(); }
+            if decay_worry {new_stress /= 3; }
             //println!("Stress decayed to {new_stress}");
 
             // Test worry level and distrbute
-            if new_stress % (self.test_divisor as f64) == 0.0 {
+            if new_stress % self.test_divisor == 0 {
                 //println!("was divisible by {}, sending to monkey {}", self.test_divisor, true_target.id);
                 let target_index = true_target.items.len();
                 true_target.items.insert(target_index, new_stress);
@@ -141,14 +145,14 @@ impl Operation {
             "*" => if parts[5].eq("old") {
                     Operation::Square
                 } else {
-                    Operation::Mul(parts[5].parse::<f64>().expect("Invalid Operand"))
+                    Operation::Mul(parts[5].parse::<usize>().expect("Invalid Operand"))
                 },
-            "+" => Operation::Add(parts[5].parse::<f64>().expect("Invalid Operand")),
+            "+" => Operation::Add(parts[5].parse::<usize>().expect("Invalid Operand")),
             _ => panic!("Invalid Operation"),
         }
     }
     
-    fn apply(&self, op: f64) -> f64 {
+    fn apply(&self, op: usize) -> usize {
         match self {
             Operation::Mul(x) => op * x,
             Operation::Add(x) => op + x,
@@ -171,6 +175,6 @@ impl Display for Monkey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Monkey {} | Op: {} | Test: Divisible By {} | True: {} False {}",
             self.id, self.operation, self.test_divisor, self.true_target, self.false_target).expect("!");
-        write!(f, "  {}", self.items.iter().map(f64::to_string).collect::<Vec<_>>().join(", "))
+        write!(f, "  {}", self.items.iter().map(usize::to_string).collect::<Vec<_>>().join(", "))
     }
 }

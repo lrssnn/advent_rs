@@ -1,5 +1,5 @@
 ﻿use std::fmt::Display;
-use std::collections::{HashMap, BinaryHeap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use super::super::day::Day;
 
