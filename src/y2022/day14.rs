@@ -4,41 +4,111 @@ use super::super::day::Day;
 
 pub struct Day14
 {
-    grid: Vec<Vec<Cell>>,
+    grid_cols: Vec<Vec<Cell>>,
+    bias: usize,
 }
 
 impl Day14 {
     pub fn new() -> Day14
     {
         let input = include_str!("input14");
-        let input = "498,4 -> 498,6 -> 496,6\n503,4 -> 502,4 -> 502,9 -> 494,9";
+        //let input = "498,4 -> 498,6 -> 496,6\n503,4 -> 502,4 -> 502,9 -> 494,9";
 
-        let grid = Cell::build_grid(input.trim());
+        let (grid, bias) = Cell::build_grid(input.trim());
 
-        Day14 { grid }
+        Day14 { grid, bias }
     }
 }
 
 impl Day for Day14 {
     fn day_name(&self) -> String { String::from("14") }
-    fn answer1(&self) -> String { String::from("?") }
+    fn answer1(&self) -> String { String::from("696") }
     fn answer2(&self) -> String { String::from("?") }
 
     fn solve(&mut self) -> (String, String)
     {
-        let ans1 = 0;
+        let sand_dropped = self.fill_sand();
+        Cell::print_grid(&self.grid);
+        let ans1 = sand_dropped;
 
         let ans2 = 0;
 
-        //println!("{ans1}, {ans2}");
+        println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
 
 impl Day14 {
+    fn fill_sand(&mut self) -> usize {
+        let mut sand_dropped = 0;
+        'sand_loop: loop {
+            // Sand always spawns at (500, 0), but adjust for our array index
+            let mut current = (500 - self.bias, 0);
+            while let Some(next) = self.step_sand(current) {
+                if next == current {
+                    // Came to rest, put it in the grid and move to the next loop
+                    self.grid[current.1][current.0] = Cell::Sand;
+                    sand_dropped += 1;
+                    //println!("After dropping {sand_dropped}");
+                    //Cell::print_grid(&self.grid);
+                    continue 'sand_loop;
+                }
+                current = next;
+            }
+            // A sand fell off the map, we are done filling
+            return sand_dropped;
+        }
+    }
+
+    fn step_sand(&self, from: (usize,usize)) -> Option<(usize, usize)> {
+        //print!("  {from:?}: ");
+        // Can we go straight down?
+        if from.1 + 1 == self.grid.len() {
+            //println!("Going straight down, off the map.");
+            return None;
+        } 
+        if self.grid[from.1 + 1][from.0] == Cell::Free {
+            //println!("Going straight down, into ({},{})", from.0, from.1 + 1);
+            return Some((from.0, from.1 + 1));
+        }
+
+        // Can we go down and left?
+        if from.0 == 0 {
+            //println!("Going down left, off the map.");
+            return None;
+        } 
+        if self.grid[from.1 + 1][from.0 - 1] == Cell::Free {
+            //println!("Going down left, into ({},{})", from.0 - 1, from.1 + 1);
+            return Some((from.0 - 1, from.1 + 1));
+        }
+
+        // Can we go down and right?
+        if from.0 == self.grid[0].len() - 1 {
+            //println!("Going down right, off the map.");
+            return None;
+        } 
+        if self.grid[from.1 + 1][from.0 + 1] == Cell::Free {
+            //println!("Going down right, into ({},{})", from.0 + 1, from.1 + 1);
+            return Some((from.0 + 1, from.1 + 1));
+        }
+
+        // We must come to rest
+        Some(from)
+    }
+
+    fn modify_for_part_two(&mut self) {
+        // First clear out the sand... maybe we don't need to - test that
+        for row in 0..self.grid.len() {
+            for col in 0..self.grid[0].len() {
+                if self.grid[row][col] == Cell::Sand { self.grid[row][col] = Cell::Free }
+            }
+        }
+
+        // Add an empty row below, and then the 
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Cell {
     Obstacle,
     Free,
@@ -46,7 +116,7 @@ enum Cell {
 }
 
 impl Cell {
-    fn build_grid(input: &str) -> Vec<Vec<Cell>> {
+    fn build_grid(input: &str) -> (Vec<Vec<Cell>>, usize) {
         // First we are going to find the minimum x value, so we can adjust from the big values to our vec values
         let (xs, ys): (Vec<usize>, Vec<usize>) = input.split('\n').flat_map(|line| line.split(" -> ")).map(|pair| {
             let parts = pair.split(',').collect::<Vec<_>>();
@@ -59,8 +129,8 @@ impl Cell {
 
         let mut grid = Cell::empty_grid(width + 1, max_y + 1);
 
-        println!("{:?}", grid);
-        Cell::print_grid(&grid);
+        //println!("{:?}", grid);
+        //Cell::print_grid(&grid);
 
         // Now parse the input into paths
         let paths = input.split('\n').map(|line| Path::from_str(line, min_x))
@@ -68,21 +138,21 @@ impl Cell {
 
         // and follow each path filling the grid with obstacles
         for path in &paths {
-            println!("{path}");
+            //println!("{path}");
             for point in path.get_full_path() { 
-                println!(" {:?}", point);
+                //println!(" {:?}", point);
                 grid[point.1][point.0] = Cell::Obstacle;
             }
         }
 
         Cell::print_grid(&grid);
 
-        grid
+        (grid, min_x)
     }
 
     fn empty_grid(width: usize, height: usize) -> Vec<Vec<Cell>> {
         (0..height).map(|_row| {
-            println!("row ");
+            //println!("row ");
             (0..width).map(|_col| Cell::Free).collect()
         }
         ).collect()
