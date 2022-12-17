@@ -1,11 +1,15 @@
-﻿use std::fmt::Display;
+﻿use std::{fmt::Display, collections::HashMap};
 
 use super::super::day::Day;
 
+use crate::get_col;
+
 pub struct Day14
 {
-    grid_cols: Vec<Vec<Cell>>,
-    bias: usize,
+    grid: HashMap<usize, Vec<Cell>>,
+    min_x: usize,
+    max_x: usize,
+    max_y: usize,
 }
 
 impl Day14 {
@@ -14,9 +18,9 @@ impl Day14 {
         let input = include_str!("input14");
         //let input = "498,4 -> 498,6 -> 496,6\n503,4 -> 502,4 -> 502,9 -> 494,9";
 
-        let (grid, bias) = Cell::build_grid(input.trim());
+        let (grid, min_x, max_x, max_y) = Cell::build_grid(input.trim());
 
-        Day14 { grid, bias }
+        Day14 { grid, min_x, max_x, max_y }
     }
 }
 
@@ -28,7 +32,7 @@ impl Day for Day14 {
     fn solve(&mut self) -> (String, String)
     {
         let sand_dropped = self.fill_sand();
-        Cell::print_grid(&self.grid);
+        Cell::print_grid(&self.grid, self.min_x, self.max_x);
         let ans1 = sand_dropped;
 
         let ans2 = 0;
@@ -43,11 +47,11 @@ impl Day14 {
         let mut sand_dropped = 0;
         'sand_loop: loop {
             // Sand always spawns at (500, 0), but adjust for our array index
-            let mut current = (500 - self.bias, 0);
+            let mut current = (500, 0);
             while let Some(next) = self.step_sand(current) {
                 if next == current {
                     // Came to rest, put it in the grid and move to the next loop
-                    self.grid[current.1][current.0] = Cell::Sand;
+                    get_col!(self.grid, current.0, self.max_y)[current.1] = Cell::Sand;
                     sand_dropped += 1;
                     //println!("After dropping {sand_dropped}");
                     //Cell::print_grid(&self.grid);
@@ -60,14 +64,14 @@ impl Day14 {
         }
     }
 
-    fn step_sand(&self, from: (usize,usize)) -> Option<(usize, usize)> {
+    fn step_sand(&mut self, from: (usize,usize)) -> Option<(usize, usize)> {
         //print!("  {from:?}: ");
         // Can we go straight down?
-        if from.1 + 1 == self.grid.len() {
+        if from.1 + 1 == self.max_y {
             //println!("Going straight down, off the map.");
             return None;
         } 
-        if self.grid[from.1 + 1][from.0] == Cell::Free {
+        if get_col!(self.grid, from.0, self.max_x)[from.1 + 1] == Cell::Free {
             //println!("Going straight down, into ({},{})", from.0, from.1 + 1);
             return Some((from.0, from.1 + 1));
         }
@@ -77,17 +81,17 @@ impl Day14 {
             //println!("Going down left, off the map.");
             return None;
         } 
-        if self.grid[from.1 + 1][from.0 - 1] == Cell::Free {
+        if get_col!(self.grid, from.0 - 1, self.max_y)[from.1 + 1] == Cell::Free {
             //println!("Going down left, into ({},{})", from.0 - 1, from.1 + 1);
             return Some((from.0 - 1, from.1 + 1));
         }
 
         // Can we go down and right?
-        if from.0 == self.grid[0].len() - 1 {
+        if from.0 == self.max_x - 1 {
             //println!("Going down right, off the map.");
             return None;
         } 
-        if self.grid[from.1 + 1][from.0 + 1] == Cell::Free {
+        if get_col!(&mut self.grid, from.0 + 1, self.max_y)[from.1 + 1] == Cell::Free {
             //println!("Going down right, into ({},{})", from.0 + 1, from.1 + 1);
             return Some((from.0 + 1, from.1 + 1));
         }
@@ -96,6 +100,7 @@ impl Day14 {
         Some(from)
     }
 
+    /*
     fn modify_for_part_two(&mut self) {
         // First clear out the sand... maybe we don't need to - test that
         for row in 0..self.grid.len() {
@@ -106,6 +111,7 @@ impl Day14 {
 
         // Add an empty row below, and then the 
     }
+    */
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -116,7 +122,7 @@ enum Cell {
 }
 
 impl Cell {
-    fn build_grid(input: &str) -> (Vec<Vec<Cell>>, usize) {
+    fn build_grid(input: &str) -> (HashMap<usize, Vec<Cell>>, usize, usize, usize) {
         // First we are going to find the minimum x value, so we can adjust from the big values to our vec values
         let (xs, ys): (Vec<usize>, Vec<usize>) = input.split('\n').flat_map(|line| line.split(" -> ")).map(|pair| {
             let parts = pair.split(',').collect::<Vec<_>>();
@@ -124,16 +130,12 @@ impl Cell {
         }).unzip();
         let min_x = *xs.iter().min().expect("No min x?");
         let max_x = *xs.iter().max().expect("No max x?");
-        let max_y = *ys.iter().max().expect("No max y?");
-        let width = max_x - min_x;
+        let max_y = *ys.iter().max().expect("No max y?") + 1;
 
-        let mut grid = Cell::empty_grid(width + 1, max_y + 1);
-
-        //println!("{:?}", grid);
-        //Cell::print_grid(&grid);
+        let mut grid = HashMap::new();
 
         // Now parse the input into paths
-        let paths = input.split('\n').map(|line| Path::from_str(line, min_x))
+        let paths = input.split('\n').map(|line| Path::from_str(line))
             .collect::<Vec<Path>>();
 
         // and follow each path filling the grid with obstacles
@@ -141,31 +143,41 @@ impl Cell {
             //println!("{path}");
             for point in path.get_full_path() { 
                 //println!(" {:?}", point);
-                grid[point.1][point.0] = Cell::Obstacle;
+                get_col!(grid, point.0, max_y)[point.1] = Cell::Obstacle;
             }
         }
 
-        Cell::print_grid(&grid);
+        Cell::print_grid(&grid, min_x, max_x);
 
-        (grid, min_x)
+        (grid, min_x, max_x, max_y)
     }
 
-    fn empty_grid(width: usize, height: usize) -> Vec<Vec<Cell>> {
-        (0..height).map(|_row| {
-            //println!("row ");
-            (0..width).map(|_col| Cell::Free).collect()
-        }
-        ).collect()
+    fn empty_column(height: usize) -> Vec<Cell> {
+        (0..height).map(|_col| Cell::Free).collect()
     }
 
-    fn print_grid(grid: &Vec<Vec<Cell>>) {
-        for row in grid {
-            for cell in row {
-                print!("{cell}");
+    fn print_grid(grid: &HashMap<usize, Vec<Cell>>, min_x: usize, max_x: usize) {
+        for row in 0..grid.values().next().expect("Should be one row").len() {
+            for x in min_x..=max_x {
+                print!("{}", grid.get(&x).expect("Should have this col")[row]);
             }
             println!();
         }
     }
+}
+
+#[macro_export]
+// This is a macro, because writing it as a function was giving pain about the mutability
+macro_rules! get_col {
+    ($grid: expr, $x: expr, $max_y: expr) => {
+        { // This scope is required because reasons ? 
+            if !$grid.contains_key(&$x) {
+                $grid.insert($x, Cell::empty_column($max_y));
+            }
+
+            $grid.get_mut(&$x).expect("We just ensured there was an entry")
+        }
+    };
 }
 
 struct Path {
@@ -173,10 +185,10 @@ struct Path {
 }
 
 impl Path {
-    fn from_str(input: &str, bias: usize) -> Path {
+    fn from_str(input: &str) -> Path {
         let points = input.split(" -> ").map(|pair| {
             let parts = pair.split(',').collect::<Vec<_>>();
-            (parts[0].parse::<usize>().expect("!") - bias, parts[1].parse::<usize>().expect("!")) 
+            (parts[0].parse::<usize>().expect("!"), parts[1].parse::<usize>().expect("!")) 
         }).collect();
         Path {points}
     }
