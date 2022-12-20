@@ -1,12 +1,14 @@
-﻿use std::{fmt::Display, collections::HashSet, ops::{RangeInclusive, RangeTo}, io::Write};
+﻿use std::{fmt::Display, collections::HashSet, ops::{RangeInclusive, RangeTo}, io::Write, time::Instant};
+
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 use super::super::day::Day;
 
-const PART1_TARGET_Y: isize = 10;
-//const PART1_TARGET_Y: isize = 2000000;
+//const PART1_TARGET_Y: i32 = 10;
+const PART1_TARGET_Y: i32 = 2000000;
 
-const PART2_MAX: isize = 20;
-//const PART2_MAX: isize = 4000000;
+//const PART2_MAX: i32 = 20;
+const PART2_MAX: i32 = 4000000;
 
 pub struct Day15
 {
@@ -17,7 +19,7 @@ impl Day15 {
     pub fn new() -> Day15
     {
         let input = include_str!("input15");
-        let input = include_str!("input15_example");
+        //let input = include_str!("input15_example");
 
         let scanners = input.trim().split('\n')
             .map(Scanner::from_str).collect::<Vec<Scanner>>();
@@ -36,7 +38,8 @@ impl Day for Day15 {
     {
 
         let target_row_beacons = self.scanners.iter().filter(|scanner| scanner.beacon_y == PART1_TARGET_Y).collect::<Vec<_>>();
-        let coverage_ranges = self.scanners.iter().map(|s| s.coverage_horizontal(PART1_TARGET_Y)).collect::<Vec<_>>();
+        let coverage_ranges = self.scanners.iter().filter_map(|s| s.coverage_horizontal(PART1_TARGET_Y)).collect::<Vec<_>>();
+        //let coverage_ranges = combine_coverage_ranges(&coverage_ranges);
         // we have an iterator of ranges, find the total covered area....
         // This seems like a bad way to do this
 
@@ -56,43 +59,52 @@ impl Day for Day15 {
 
         let ans1 = covered;
 
-        let mut ans2 = 0;
-        'y_loop: for y in 0..=PART2_MAX {
-            print!("\r {y} / {PART2_MAX} ({:02.2}%)", (y as f32 * 100.0) / PART2_MAX as f32);
-            std::io::stdout().flush().unwrap();
-            let target_row_beacons = self.scanners.iter().filter(|scanner| scanner.beacon_y == y).collect::<Vec<_>>();
-            let coverage_ranges = self.scanners.iter().map(|s| s.coverage_horizontal(y)).collect::<Vec<_>>();
+        let ans2 = (0..=PART2_MAX).into_par_iter().find_map_any(|y| {
+            //println!("{y} / {PART2_MAX} ({:02.2}%)", (y as f32 * 100.0) / PART2_MAX as f32);
+            //std::io::stdout().flush().unwrap();
 
-            for x in 0..=PART2_MAX {
-                // Ignore beacons
-                if !target_row_beacons.iter().any(|b| b.beacon_x == x) 
-                && !coverage_ranges.iter().any(|r| r.contains(&x)) {
-                    ans2 = (x * 4000000) + y;
-                    break 'y_loop;
-                }
-            }
-        }
+            let before = Instant::now();
+            let answer = self.check_row(y);
+            let elapsed = before.elapsed();
+
+            println!("Row took {:04} millis. {PART2_MAX} rows would take {} minutes", elapsed.as_millis(), (elapsed * PART2_MAX as u32).as_secs() / 60);
+
+            answer
+        }).expect("Didn't find answer...");
+        // This is a disgusting re-calculation...
+        //let ans2 = self.check_row(answer_y).unwrap();
         println!();
 
 
-        println!("{ans1}, {ans2}");
+        println!("{ans1}, {ans2} {}", ans2 == 56000011);
         (ans1.to_string() , ans2.to_string())
     }
+}
+
+fn combine_coverage_ranges(coverage_ranges: &Vec<RangeInclusive<i32>>) -> Vec<RangeInclusive<i32>> {
+    let mut result = vec![];
+    for range in coverage_ranges {
+        // if this range isn't covered entirely by another, include it
+        if !coverage_ranges.iter().any(|other| other.start() < range.start() && other.end() > range.end()) {
+            result.push(range.clone());
+        }
+    }
+    result
 }
 
 impl Day15 {
     fn print_coverage_2(&self, coverage_target: &Scanner) {
         // Find the mins and the maxes
-        let mut min_x = isize::MAX;
-        let mut max_x = isize::MIN;
-        let mut min_y = isize::MAX;
-        let mut max_y = isize::MIN;
+        let mut min_x = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut min_y = i32::MAX;
+        let mut max_y = i32::MIN;
 
         for scanner in &self.scanners {
-            min_x = isize::min(min_x, isize::min(scanner.x, scanner.beacon_x));
-            max_x = isize::max(max_x, isize::max(scanner.x, scanner.beacon_x));
-            min_y = isize::min(min_y, isize::min(scanner.y, scanner.beacon_y));
-            max_y = isize::max(max_y, isize::max(scanner.y, scanner.beacon_y));
+            min_x = i32::min(min_x, i32::min(scanner.x, scanner.beacon_x));
+            max_x = i32::max(max_x, i32::max(scanner.x, scanner.beacon_x));
+            min_y = i32::min(min_y, i32::min(scanner.y, scanner.beacon_y));
+            max_y = i32::max(max_y, i32::max(scanner.y, scanner.beacon_y));
         }
 
         for y in min_y..=max_y {
@@ -111,16 +123,34 @@ impl Day15 {
             println!();
         }
     }
+
+    fn check_row(&self, check_y: i32) -> Option<i32> {
+        let coverage_ranges = self.scanners.iter().filter_map(|s| s.coverage_horizontal(check_y)).collect::<Vec<_>>();
+        let coverage_ranges = combine_coverage_ranges(&coverage_ranges);
+        for x in 0..=PART2_MAX {
+            // Ignore beacons
+            /*
+            if !target_row_beacons.iter().any(|b| b.beacon_x == x) 
+            && !coverage_ranges.iter().any(|r| r.contains(&x)) {
+                */
+            if !coverage_ranges.iter().any(|r| r.contains(&x))
+            && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
+                return Some((x as i32 * 4000000) + check_y as i32);
+            }
+        }
+        None
+    }
+
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Scanner {
-    x: isize,
-    y: isize,
-    beacon_x: isize,
-    beacon_y: isize,
+    x: i32,
+    y: i32,
+    beacon_x: i32,
+    beacon_y: i32,
 
-    beacon_dist: isize,
+    beacon_dist: i32,
 }
 
 impl Scanner {
@@ -131,10 +161,10 @@ impl Scanner {
         let bx_str = parts[8];
         let by_str = parts[9];
 
-        let x = x_str[2..x_str.len() - 1].parse::<isize>().expect("Parse Error");
-        let y = y_str[2..y_str.len() - 1].parse::<isize>().expect("Parse Error");
-        let beacon_x = bx_str[2..bx_str.len() - 1].parse::<isize>().expect("Parse Error");
-        let beacon_y = by_str[2..].parse::<isize>().expect("Parse Error");
+        let x = x_str[2..x_str.len() - 1].parse::<i32>().expect("Parse Error");
+        let y = y_str[2..y_str.len() - 1].parse::<i32>().expect("Parse Error");
+        let beacon_x = bx_str[2..bx_str.len() - 1].parse::<i32>().expect("Parse Error");
+        let beacon_y = by_str[2..].parse::<i32>().expect("Parse Error");
 
         let beacon_dist = (x - beacon_x).abs() + (y - beacon_y).abs();
 
@@ -143,13 +173,13 @@ impl Scanner {
 
     // TODO! This is very slow, try instead writing is_covered(x, y), so we can just loop through the row and see if we can reach any
     // scanners, instead of computing the entire coverage range...
-    fn covers(&self, x: isize, y: isize) -> bool {
+    fn covers(&self, x: i32, y: i32) -> bool {
         let x_dist = (self.x - x).abs();
         let y_dist = (self.y - y).abs();
         x_dist + y_dist <= self.beacon_dist
     }
 
-    fn coverage(&self) -> HashSet<(isize, isize)> {
+    fn coverage(&self) -> HashSet<(i32, i32)> {
         println!("Coverage for {},{}...", self.x, self.y);
         let mut result = HashSet::new();
         let beacon_distance = (self.x - self.beacon_x).abs() + (self.y - self.beacon_y).abs();
@@ -165,9 +195,13 @@ impl Scanner {
         result
     }
 
-    fn coverage_horizontal(&self, y: isize) -> RangeInclusive<isize> {
+    fn coverage_horizontal(&self, y: i32) -> Option<RangeInclusive<i32>> {
         // Simply, how far can we reach in either direction, at this y range
         let x_dist = self.beacon_dist - (self.y - y).abs(); // How many steps of 'distance' do we have left to allocate to x direction?
-        (self.x-x_dist)..=(self.x + x_dist)
+        if x_dist > 0 {
+            Some((self.x-x_dist)..=(self.x + x_dist))
+        } else {
+            None
+        }
     }
 }
