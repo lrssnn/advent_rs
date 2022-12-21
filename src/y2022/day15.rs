@@ -10,6 +10,9 @@ const PART1_TARGET_Y: i32 = 2000000;
 //const PART2_MAX: i32 = 20;
 const PART2_MAX: i32 = 4000000;
 
+const CHUNKS: usize = 4;
+const CHUNK_SIZE: usize = PART2_MAX as usize / CHUNKS;
+
 pub struct Day15
 {
     scanners: Vec<Scanner>,
@@ -59,20 +62,9 @@ impl Day for Day15 {
 
         let ans1 = covered;
 
-        let ans2 = (0..=PART2_MAX).into_par_iter().find_map_any(|y| {
-            //println!("{y} / {PART2_MAX} ({:02.2}%)", (y as f32 * 100.0) / PART2_MAX as f32);
-            //std::io::stdout().flush().unwrap();
-
-            let before = Instant::now();
-            let answer = self.check_row(y);
-            let elapsed = before.elapsed();
-
-            println!("Row took {:04} millis. {PART2_MAX} rows would take {} minutes", elapsed.as_millis(), (elapsed * PART2_MAX as u32).as_secs() / 60);
-
-            answer
+        let ans2 = (0..CHUNKS).into_par_iter().find_map_any(|chunk| {
+            self.check_chunk(chunk)
         }).expect("Didn't find answer...");
-        // This is a disgusting re-calculation...
-        //let ans2 = self.check_row(answer_y).unwrap();
         println!();
 
 
@@ -90,6 +82,10 @@ fn combine_coverage_ranges(coverage_ranges: &Vec<RangeInclusive<i32>>) -> Vec<Ra
         }
     }
     result
+}
+
+fn indent(width: usize) -> String {
+    (0..width).map(|_| ' ').collect::<String>()
 }
 
 impl Day15 {
@@ -123,6 +119,22 @@ impl Day15 {
             println!();
         }
     }
+    
+    fn check_chunk(&self, my_chunk: usize) -> Option<i32> {
+        let my_start = (my_chunk * CHUNK_SIZE) as i32;
+        let my_end = my_start + CHUNK_SIZE as i32;
+        (my_start..=my_end).find_map(|y| {
+            println!("{}{} / {CHUNK_SIZE} ({:02.2}%)", indent(my_chunk * 20), y - my_start, ((y - my_start) as f32 * 100.0) / CHUNK_SIZE as f32);
+            //std::io::stdout().flush().unwrap();
+
+            let answer = self.check_row(y);
+
+            //println!("Row took {:04} millis. {PART2_MAX} rows would take {} minutes", elapsed.as_millis(), (elapsed * PART2_MAX as u32).as_secs() / 60);
+
+            answer
+        })
+    }
+    
 
     fn check_row(&self, check_y: i32) -> Option<i32> {
         let coverage_ranges = self.scanners.iter().filter_map(|s| s.coverage_horizontal(check_y)).collect::<Vec<_>>();
