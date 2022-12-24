@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::HashSet, ops::{RangeInclusive, RangeTo}, io::Write, time::Instant};
+﻿use std::{ops::RangeInclusive, time::Instant};
 
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
@@ -10,7 +10,7 @@ const PART1_TARGET_Y: i32 = 2000000;
 //const PART2_MAX: i32 = 20;
 const PART2_MAX: i32 = 4000000;
 
-const CHUNKS: usize = 4;
+const CHUNKS: usize = 100;
 const CHUNK_SIZE: usize = PART2_MAX as usize / CHUNKS;
 
 pub struct Day15
@@ -19,6 +19,7 @@ pub struct Day15
 }
 
 impl Day15 {
+    #[allow(dead_code)]
     pub fn new() -> Day15
     {
         let input = include_str!("input15");
@@ -84,67 +85,33 @@ fn combine_coverage_ranges(coverage_ranges: &Vec<RangeInclusive<i32>>) -> Vec<Ra
     result
 }
 
-fn indent(width: usize) -> String {
-    (0..width).map(|_| ' ').collect::<String>()
-}
-
 impl Day15 {
-    fn print_coverage_2(&self, coverage_target: &Scanner) {
-        // Find the mins and the maxes
-        let mut min_x = i32::MAX;
-        let mut max_x = i32::MIN;
-        let mut min_y = i32::MAX;
-        let mut max_y = i32::MIN;
-
-        for scanner in &self.scanners {
-            min_x = i32::min(min_x, i32::min(scanner.x, scanner.beacon_x));
-            max_x = i32::max(max_x, i32::max(scanner.x, scanner.beacon_x));
-            min_y = i32::min(min_y, i32::min(scanner.y, scanner.beacon_y));
-            max_y = i32::max(max_y, i32::max(scanner.y, scanner.beacon_y));
-        }
-
-        for y in min_y..=max_y {
-            print!("{y:02}: ");
-            for x in min_x..=max_x {
-                if self.scanners.iter().any(|s| s.x == x && s.y == y) {
-                    print!("S");
-                } else if self.scanners.iter().any(|s| s.beacon_x == x && s.beacon_y == y) {
-                    print!("B");
-                } else if  coverage_target.covers(x, y){
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
-    }
-    
     fn check_chunk(&self, my_chunk: usize) -> Option<i32> {
         let my_start = (my_chunk * CHUNK_SIZE) as i32;
         let my_end = my_start + CHUNK_SIZE as i32;
-        (my_start..=my_end).find_map(|y| {
-            println!("{}{} / {CHUNK_SIZE} ({:02.2}%)", indent(my_chunk * 20), y - my_start, ((y - my_start) as f32 * 100.0) / CHUNK_SIZE as f32);
-            //std::io::stdout().flush().unwrap();
+        let before = Instant::now();
+        let result = (my_start..=my_end).find_map(|y| {
+            /*
+            if y % 100 == 0 {
+                println!("{} / {CHUNK_SIZE} ({:02.2}%)", y - my_start, ((y - my_start) as f32 * 100.0) / CHUNK_SIZE as f32);
+            }
+            */
 
             let answer = self.check_row(y);
 
-            //println!("Row took {:04} millis. {PART2_MAX} rows would take {} minutes", elapsed.as_millis(), (elapsed * PART2_MAX as u32).as_secs() / 60);
 
             answer
-        })
+        });
+        let elapsed = before.elapsed();
+        println!("chunk {my_chunk} took {:04} millis. {CHUNKS} chunks would take {} minutes", elapsed.as_millis(), (elapsed * CHUNKS as u32).as_secs() / 60);
+        result
     }
     
-
     fn check_row(&self, check_y: i32) -> Option<i32> {
         let coverage_ranges = self.scanners.iter().filter_map(|s| s.coverage_horizontal(check_y)).collect::<Vec<_>>();
         let coverage_ranges = combine_coverage_ranges(&coverage_ranges);
         for x in 0..=PART2_MAX {
             // Ignore beacons
-            /*
-            if !target_row_beacons.iter().any(|b| b.beacon_x == x) 
-            && !coverage_ranges.iter().any(|r| r.contains(&x)) {
-                */
             if !coverage_ranges.iter().any(|r| r.contains(&x))
             && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
                 return Some((x as i32 * 4000000) + check_y as i32);
@@ -161,7 +128,6 @@ struct Scanner {
     y: i32,
     beacon_x: i32,
     beacon_y: i32,
-
     beacon_dist: i32,
 }
 
@@ -181,30 +147,6 @@ impl Scanner {
         let beacon_dist = (x - beacon_x).abs() + (y - beacon_y).abs();
 
         Scanner { x, y, beacon_x, beacon_y, beacon_dist }
-    }
-
-    // TODO! This is very slow, try instead writing is_covered(x, y), so we can just loop through the row and see if we can reach any
-    // scanners, instead of computing the entire coverage range...
-    fn covers(&self, x: i32, y: i32) -> bool {
-        let x_dist = (self.x - x).abs();
-        let y_dist = (self.y - y).abs();
-        x_dist + y_dist <= self.beacon_dist
-    }
-
-    fn coverage(&self) -> HashSet<(i32, i32)> {
-        println!("Coverage for {},{}...", self.x, self.y);
-        let mut result = HashSet::new();
-        let beacon_distance = (self.x - self.beacon_x).abs() + (self.y - self.beacon_y).abs();
-        println!("Beacon distance = {beacon_distance}");
-
-        for y in (self.y-beacon_distance)..=(self.y + beacon_distance) {
-            let x_dist = beacon_distance - (self.y - y).abs(); // How many steps of 'distance' do we have left to allocate to x direction?
-
-            for x in (self.x-x_dist)..=(self.x + x_dist) {
-                result.insert((x, y));
-            }
-        }
-        result
     }
 
     fn coverage_horizontal(&self, y: i32) -> Option<RangeInclusive<i32>> {
