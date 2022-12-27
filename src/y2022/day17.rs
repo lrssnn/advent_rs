@@ -1,8 +1,8 @@
-﻿use std::{fmt::Display, collections::{HashMap, HashSet}, ops::{RangeInclusive, RangeTo}, io::Write, time::Instant};
-
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator, IntoParallelIterator};
+﻿use std::fmt::Display;
 
 use super::super::day::Day;
+
+const GAME_SIZE_LIMIT: usize = 40; // This is tuned based on feels and vibes. The smaller the faster, too small and you will change the result
 
 pub struct Day17
 {
@@ -44,13 +44,14 @@ impl Day for Day17 {
             //println!("After rock {turn}");
         }
 
-        let ans1 = game.rows.len();
+        let ans1 = game.rows.len() + game.dead_rows;
 
         for _turn in 2023..(1000000000000 as usize) {
             game.run_rock();
-            if _turn % 100 == 0 { println!("Turn {_turn}"); }
+            if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
         }
-        let ans2 = 0;
+
+        let ans2 = game.rows.len() + game.dead_rows;
 
         println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
@@ -65,11 +66,12 @@ struct Game {
     spawn_counter: u8,
     jets: Vec<Jet>,
     jet_counter: usize,
+    dead_rows: usize,
 }
 
 impl Game {
     fn new(jets: Vec<Jet>) -> Game {
-        Game { rows: Vec::new(), spawn_counter: 0, jets, jet_counter: 0}
+        Game { rows: Vec::new(), spawn_counter: 0, jets, jet_counter: 0, dead_rows: 0}
     }
 
     fn run_rock(&mut self) {
@@ -95,6 +97,13 @@ impl Game {
         self.rows.reverse();
         //println!("After Truncate: ");
         //println!("{self}");
+
+        // Chop rows off the bottom, we can assume that beyond a certain point, the rows are static
+        if self.rows.len() > GAME_SIZE_LIMIT {
+            let dead_rows = self.rows.len() - GAME_SIZE_LIMIT;
+            self.rows.truncate(GAME_SIZE_LIMIT);
+            self.dead_rows += dead_rows;
+        }
     }
 
     fn spawn(&mut self) {
