@@ -46,10 +46,12 @@ impl Day for Day17 {
 
         let ans1 = game.rows.len() + game.dead_rows;
 
+        /*
         for _turn in 2023..(1000000000000 as usize) {
             game.run_rock();
             if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
         }
+        */
 
         let ans2 = game.rows.len() + game.dead_rows;
 
@@ -151,11 +153,9 @@ impl Game {
         for row in &self.rows {
             for i in 0..7 {
                 let cell = row[i];
-                if cell == Cell::Active {
-                    if i == 0 || row[i - 1] == Cell::Still {
-                        //println!("Not applying a jet left...");
-                        return;
-                    }
+                if cell == Cell::Active && ( i == 0 || row[i - 1] == Cell::Still ) {
+                    //println!("Not applying a jet left...");
+                    return;
                 }
             }
         }
@@ -216,11 +216,9 @@ impl Game {
         for row_i in (0..rows).rev(){
             for col_i in 0..7 {
                 let cell = self.rows[row_i][col_i];
-                if cell == Cell::Active {
-                    if row_i == rows - 1 || self.rows[row_i + 1][col_i] == Cell::Still {
-                        //println!("Rock Should rest because of {row_i},{col_i}");
-                        return true;
-                    }
+                if cell == Cell::Active && (row_i == rows - 1 || self.rows[row_i + 1][col_i] == Cell::Still) {
+                    //println!("Rock Should rest because of {row_i},{col_i}");
+                    return true;
                 }
             }
         }

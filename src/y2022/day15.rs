@@ -57,7 +57,7 @@ impl Day for Day15 {
         for point in lowest_covered..=highest_covered {
             // Ignore beacons
             if !target_row_beacons.iter().any(|b| b.beacon_x == point) 
-            && coverage_ranges.iter().any(|r| Self::check_cell(&r, point)) {
+            && coverage_ranges.iter().any(|r| Self::check_cell(r, point)) {
                 covered += 1;
             }
         }
@@ -82,7 +82,7 @@ fn combine_coverage_ranges(coverage_ranges: &Vec<(i32, i32)>) -> Vec<(i32, i32)>
     for range in coverage_ranges {
         // if this range isn't covered entirely by another, include it
         if !coverage_ranges.iter().any(|other| other.1 < range.0 && other.1 > range.0) {
-            result.push(range.clone());
+            result.push(*range);
         }
     }
     result
@@ -100,10 +100,7 @@ impl Day15 {
             }
             */
 
-            let answer = self.check_row_2(y);
-
-
-            answer
+            self.check_row_2(y)
         });
         let elapsed = before.elapsed();
         println!("chunk {my_chunk} took {:04} millis. {CHUNKS} chunks would take {} minutes", elapsed.as_millis(), (elapsed * CHUNKS as u32).as_secs() / 60);
@@ -117,7 +114,7 @@ impl Day15 {
             // Ignore beacons
             if !coverage_ranges.iter().any(|r| Self::check_cell(r, x))
             && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
-                return Some((x as i32 * 4000000) + check_y as i32);
+                return Some((x * 4000000) + check_y);
             }
         }
         None
@@ -127,7 +124,7 @@ impl Day15 {
         for x in 0..=PART2_MAX {
             if !self.scanners.iter().any(|s| s.covers(x, check_y))
             && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
-                return Some((x as i32 * 4000000) + check_y as i32);
+                return Some((x * 4000000) + check_y);
             }
         }
         None

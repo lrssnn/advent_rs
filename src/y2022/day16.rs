@@ -1,6 +1,6 @@
-﻿use std::{fmt::Display, collections::{HashMap, HashSet}, ops::{RangeInclusive, RangeTo}, io::Write, time::Instant};
+﻿use std::{fmt::Display, collections::HashMap};
 
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator, IntoParallelIterator};
+use rayon::prelude::{ParallelIterator, IntoParallelIterator};
 
 use super::super::day::Day;
 
@@ -10,6 +10,7 @@ pub struct Day16
 }
 
 impl Day16 {
+    #[allow(dead_code)]
     pub fn new() -> Day16
     {
         let input = include_str!("input16");
@@ -83,7 +84,7 @@ impl Day16 {
         }
 
         for destination in &this_valve.tunnel_ids {
-            children.push(from.travel_to(&destination));
+            children.push(from.travel_to(destination));
         }
 
         let score = children.into_par_iter().map_with(cache.clone(), |c, state| self.find_best(&state, c)).max().unwrap();
