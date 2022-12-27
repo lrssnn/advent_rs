@@ -20,7 +20,7 @@ use y2022::day11::*;
 //use y2022::day12::*;
 use y2022::day13::*;
 use y2022::day14::*;
-//use y2022::day15::*;
+use y2022::day15::*;
 //use y2022::day16::*;
 use y2022::day17::*;
 
@@ -58,7 +58,7 @@ fn full_test()
         // slow Box::new(Day12::new()),
         Box::new(Day13::new()),
         Box::new(Day14::new()),
-        // slow Box::new(Day15::new()),
+        Box::new(Day15::new()),
         // slow Box::new(Day16::new()),
         Box::new(Day17::new()),
     ];
