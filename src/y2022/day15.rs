@@ -1,16 +1,19 @@
-﻿use std::{ops::RangeInclusive, time::Instant};
+﻿use std::time::Instant;
 
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 use super::super::day::Day;
 
-//const PART1_TARGET_Y: i32 = 10;
 const PART1_TARGET_Y: i32 = 2000000;
-
-//const PART2_MAX: i32 = 20;
 const PART2_MAX: i32 = 4000000;
+const CHUNKS: usize = 100000;
 
-const CHUNKS: usize = 100;
+/*
+const PART1_TARGET_Y: i32 = 10;
+const PART2_MAX: i32 = 20;
+const CHUNKS: usize = 10;
+*/
+
 const CHUNK_SIZE: usize = PART2_MAX as usize / CHUNKS;
 
 pub struct Day15
@@ -47,14 +50,14 @@ impl Day for Day15 {
         // we have an iterator of ranges, find the total covered area....
         // This seems like a bad way to do this
 
-        let lowest_covered = *coverage_ranges.iter().min_by_key(|r| r.start()).expect("?").start();
-        let highest_covered = *coverage_ranges.iter().max_by_key(|r| r.end()).expect("?").end();
+        let lowest_covered = coverage_ranges.iter().min_by_key(|r| r.0).expect("?").0;
+        let highest_covered = coverage_ranges.iter().max_by_key(|r| r.1).expect("?").1;
 
         let mut covered = 0;
         for point in lowest_covered..=highest_covered {
             // Ignore beacons
             if !target_row_beacons.iter().any(|b| b.beacon_x == point) 
-            && coverage_ranges.iter().any(|r| r.contains(&point)) {
+            && coverage_ranges.iter().any(|r| Self::check_cell(&r, point)) {
                 covered += 1;
             }
         }
@@ -74,11 +77,11 @@ impl Day for Day15 {
     }
 }
 
-fn combine_coverage_ranges(coverage_ranges: &Vec<RangeInclusive<i32>>) -> Vec<RangeInclusive<i32>> {
+fn combine_coverage_ranges(coverage_ranges: &Vec<(i32, i32)>) -> Vec<(i32, i32)> {
     let mut result = vec![];
     for range in coverage_ranges {
         // if this range isn't covered entirely by another, include it
-        if !coverage_ranges.iter().any(|other| other.start() < range.start() && other.end() > range.end()) {
+        if !coverage_ranges.iter().any(|other| other.1 < range.0 && other.1 > range.0) {
             result.push(range.clone());
         }
     }
@@ -97,7 +100,7 @@ impl Day15 {
             }
             */
 
-            let answer = self.check_row(y);
+            let answer = self.check_row_2(y);
 
 
             answer
@@ -112,12 +115,26 @@ impl Day15 {
         let coverage_ranges = combine_coverage_ranges(&coverage_ranges);
         for x in 0..=PART2_MAX {
             // Ignore beacons
-            if !coverage_ranges.iter().any(|r| r.contains(&x))
+            if !coverage_ranges.iter().any(|r| Self::check_cell(r, x))
             && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
                 return Some((x as i32 * 4000000) + check_y as i32);
             }
         }
         None
+    }
+
+    fn check_row_2(&self, check_y: i32) -> Option<i32> {
+        for x in 0..=PART2_MAX {
+            if !self.scanners.iter().any(|s| s.covers(x, check_y))
+            && !self.scanners.iter().any(|scanner| scanner.beacon_y == check_y && scanner.beacon_x == x) {
+                return Some((x as i32 * 4000000) + check_y as i32);
+            }
+        }
+        None
+    }
+
+    fn check_cell(range: &(i32, i32), x: i32) -> bool {
+        range.0 <= x && x <= range.1
     }
 
 }
@@ -149,13 +166,18 @@ impl Scanner {
         Scanner { x, y, beacon_x, beacon_y, beacon_dist }
     }
 
-    fn coverage_horizontal(&self, y: i32) -> Option<RangeInclusive<i32>> {
+    fn coverage_horizontal(&self, y: i32) -> Option<(i32, i32)> {
         // Simply, how far can we reach in either direction, at this y range
         let x_dist = self.beacon_dist - (self.y - y).abs(); // How many steps of 'distance' do we have left to allocate to x direction?
         if x_dist > 0 {
-            Some((self.x-x_dist)..=(self.x + x_dist))
+            Some((self.x-x_dist, self.x + x_dist))
         } else {
             None
         }
+    }
+
+    fn covers(&self, x: i32, y: i32) -> bool {
+        let x_dist = self.beacon_dist - (self.y - y).abs(); // How many steps of 'distance' do we have left to allocate to x direction?
+        x_dist > 0 && (self.x - x).abs() <= x_dist
     }
 }
