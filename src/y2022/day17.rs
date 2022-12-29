@@ -39,8 +39,13 @@ impl Day for Day17 {
         let mut game = Game::new(self.jets.clone());
 
         for _turn in 1..=2022 {
+            /*
+            if game.jet_counter == 0 && game.spawn_counter == 0 {
+                println!("0, 0. Turn is {_turn}");
+            }
+            */
             game.run_rock();
-            if _turn % 100 == 0 { println!("Turn {_turn}"); }
+            //if _turn % 100 == 0 { println!("Turn {_turn}"); }
             //println!("After rock {turn}");
         }
 
@@ -48,8 +53,12 @@ impl Day for Day17 {
 
         /*
         for _turn in 2023..(1000000000000 as usize) {
+            //println!("{}, {}", game.jet_counter, game.spawn_counter);
+            if game.jet_counter == 0 && game.spawn_counter == 0 {
+                println!("0, 0. Turn is {_turn}");
+            }
             game.run_rock();
-            if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
+            //if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
         }
         */
 

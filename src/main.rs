@@ -3,6 +3,7 @@
 mod y2022;
 mod day;
 
+use std::env;
 use std::time::Instant;
 use std::time::Duration;
 
@@ -17,33 +18,30 @@ use y2022::day8::*;
 use y2022::day9::*;
 use y2022::day10::*;
 use y2022::day11::*;
-//use y2022::day12::*;
+use y2022::day12::*;
 use y2022::day13::*;
 use y2022::day14::*;
 use y2022::day15::*;
-//use y2022::day16::*;
+use y2022::day16::*;
 use y2022::day17::*;
 
 use crate::day::Day as DayTrait;
 
 fn main() {
-    /*
-    let day = new Day8();
-    day.Solve();
-    println!("{day.Valid1} | {day.Valid2}");
-    */
-    full_test();
-    /*
-    let day = Day1::new();
-    let (ans1, ans2) = day.solve();
-    println!("Answer 1 '{}' | Answer 2 '{}'", ans1, ans2);
-    */
+    let args: Vec<String> = env::args().collect();
+    for arg in &args {println!("'{arg}' {}", arg == "--full")};
+    if args.iter().any(|arg| arg == "--full") {
+        test(true);
+    } else {
+        test(false);
+    }
 }
 
-fn full_test()
+fn test(full: bool)
 {
     let construction_start = Instant::now();
-    let days: Vec<Box<dyn DayTrait>> = vec! [
+    let days: Vec<Box<dyn DayTrait>> = if full {
+        vec! [
         Box::new(Day1::new()),
         Box::new(Day2::new()),
         Box::new(Day3::new()),
@@ -55,13 +53,18 @@ fn full_test()
         Box::new(Day9::new()),
         Box::new(Day10::new()),
         Box::new(Day11::new()),
-        // slow Box::new(Day12::new()),
+        Box::new(Day12::new()),
         Box::new(Day13::new()),
         Box::new(Day14::new()),
         Box::new(Day15::new()),
-        // slow Box::new(Day16::new()),
+        Box::new(Day16::new()),
         Box::new(Day17::new()),
-    ];
+    ]
+    } else {
+        vec![
+            Box::new(Day17::new()),
+        ]
+    };
 
     let construction_time = construction_start.elapsed();
 

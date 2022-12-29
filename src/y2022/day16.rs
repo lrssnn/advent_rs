@@ -1,7 +1,5 @@
 ﻿use std::{fmt::Display, collections::HashMap};
 
-use rayon::prelude::{ParallelIterator, IntoParallelIterator};
-
 use super::super::day::Day;
 
 pub struct Day16
@@ -34,11 +32,13 @@ impl Day for Day16 {
 
     fn solve(&mut self) -> (String, String)
     {
+        /*
         for valve in self.valves.values() {
             println!("{valve}");
         }
+        */
 
-        println!("{}", self.valves.len());
+        //println!("{}", self.valves.len());
 
         let initial_state = State {
             at_id: "AA".to_string(),
@@ -52,7 +52,7 @@ impl Day for Day16 {
 
         let ans2 = 0;
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
@@ -87,7 +87,7 @@ impl Day16 {
             children.push(from.travel_to(destination));
         }
 
-        let score = children.into_par_iter().map_with(cache.clone(), |c, state| self.find_best(&state, c)).max().unwrap();
+        let score = children.iter().map(|state| self.find_best(state, cache)).max().unwrap();
         cache.insert(from.clone(), score);
         score
     }
@@ -136,7 +136,6 @@ struct Valve {
 
 impl Valve {
     fn from_str(input: &str) -> Valve {
-        println!("{input}");
         let mut parts = input.split("valves ").collect::<Vec<_>>();
         if parts.len() == 1 {
             // single valve
