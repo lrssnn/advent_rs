@@ -27,30 +27,17 @@ impl Day for Day17 {
     fn answer1(&self) -> String { String::from("3085") }
     fn answer2(&self) -> String { String::from("?") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        /*
-        for jet in &self.jets {
-            print!("{jet}");
-        }
-        println!();
-        */
-
+    fn part1(&mut self) -> String {
         let mut game = Game::new(self.jets.clone());
 
         for _turn in 1..=2022 {
-            /*
-            if game.jet_counter == 0 && game.spawn_counter == 0 {
-                println!("0, 0. Turn is {_turn}");
-            }
-            */
             game.run_rock();
-            //if _turn % 100 == 0 { println!("Turn {_turn}"); }
-            //println!("After rock {turn}");
         }
 
-        let ans1 = game.rows.len() + game.dead_rows;
+        (game.rows.len() + game.dead_rows).to_string()
+    }
 
+    fn part2(&mut self) -> String {
         /*
         for _turn in 2023..(1000000000000 as usize) {
             //println!("{}, {}", game.jet_counter, game.spawn_counter);
@@ -60,12 +47,11 @@ impl Day for Day17 {
             game.run_rock();
             //if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
         }
-        */
 
         let ans2 = game.rows.len() + game.dead_rows;
+        */
 
-        println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+        "Unsolved".to_string()
     }
 }
 

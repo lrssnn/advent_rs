@@ -24,23 +24,17 @@ impl Day for Day3 {
     fn answer1(&self) -> String { String::from("8515") }
     fn answer2(&self) -> String { String::from("2434") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        /* 
-        for r in &self.rucks {
-            println!("{} ({})", r.outlier(), score_char(r.outlier()));
-        }*/
-        let ans1: usize = self.rucks.iter().map(|r| score_char(r.outlier())).sum();
+    fn part1(&mut self) -> String {
+        self.rucks.iter().map(|r| score_char(r.outlier())).sum::<usize>().to_string()
+    }
 
+    fn part2(&mut self) -> String {
         let mut rucks = self.rucks.iter();
         let mut sum = 0;
         while let Ok(chunk) = rucks.next_chunk::<3>() {
             sum += score_char(Rucksack::find_common(chunk))
         } 
-        let ans2: usize = sum;
-
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string(), ans2.to_string())
+        sum.to_string()
     }
 }
 

@@ -5,6 +5,7 @@ pub struct Day7
 {
     #[allow(dead_code)]
     history: Vec<HistoryItem>,
+    file_root: Option<Rc<FileSystemItem>>,
 }
 
 impl Day7 {
@@ -16,7 +17,7 @@ impl Day7 {
         // Splitting on $ to get a command and its arguments
         let history = input.split("$ ").map(str::trim).filter_map(HistoryItem::from_lines).collect();
 
-        Day7 { history }
+        Day7 { history, file_root: None }
     }
 }
 
@@ -25,14 +26,13 @@ impl Day for Day7 {
     fn answer1(&self) -> String { String::from("1315285") }
     fn answer2(&self) -> String { String::from("9847279") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        let file_root = self.build_file_system();
+    fn part1(&mut self) -> String {
+        self.file_root = Some(self.build_file_system());
+        self.count_small_dirs().to_string()
+    }
 
-        let (ans1, ans2) = Self::find_deletion_target(file_root);
-
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.find_deletion_target().to_string()
     }
 }
 
@@ -74,19 +74,28 @@ impl Day7 {
         root
     }
 
-    fn find_deletion_target(dir: Rc<FileSystemItem>) -> (usize, usize) {
+    fn count_small_dirs(&self) -> usize {
+        let dir = self.file_root.as_ref().unwrap();
         let mut sizes = vec![];
-        let total_size = Self::get_size(&dir, &mut sizes);
-        sizes.sort();
+        Self::get_size(dir, &mut sizes);
+        sizes.sort(); // OPTIMISATION I bet we don't need to do this here
 
-        let small_dirs = sizes.iter().filter(|&s| *s < 100000).sum();
+        sizes.iter().filter(|&s| *s < 100000).sum()
+    }
+
+    fn find_deletion_target(&self) -> usize {
+        let dir = self.file_root.as_ref().unwrap();
+        // OPTIMISATION: calculate this above already, save it and reuse it
+        let mut sizes = vec![];
+        let total_size = Self::get_size(dir, &mut sizes);
+        sizes.sort();
 
         let free_space = 70000000 - total_size;
         let deletion_needed = 30000000 - free_space;
 
         let deleted_size = *sizes.iter().find(|&size| *size >= deletion_needed).expect("Nothing was big enough");
 
-        (small_dirs, deleted_size)
+        deleted_size
     }
 
     fn get_size(item: &FileSystemItem, sizes: &mut Vec<usize>) -> usize {

@@ -23,14 +23,13 @@ impl Day for Day4 {
     fn answer1(&self) -> String { String::from("456") }
     fn answer2(&self) -> String { String::from("808") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         //for a in &self.assignments { println!("{}", a); }
-        let ans1: usize = self.assignments.iter().filter(|c| c.has_redundant()).count();
-        let ans2: usize = self.assignments.iter().filter(|c| c.has_overlap()).count();
+        self.assignments.iter().filter(|c| c.has_redundant()).count().to_string()
+    }
 
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string(), ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.assignments.iter().filter(|c| c.has_overlap()).count().to_string()
     }
 }
 

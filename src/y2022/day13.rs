@@ -34,9 +34,7 @@ impl Day for Day13 {
     fn answer1(&self) -> String { String::from("5938") }
     fn answer2(&self) -> String { String::from("29025") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-
+    fn part1(&mut self) -> String {
         let mut comparison = 1;
         let mut score = 0;
         for i in (0..self.packets.len()).step_by(2) {
@@ -48,8 +46,10 @@ impl Day for Day13 {
             }
             comparison += 1;
         }
-        let ans1 = score;
+        score.to_string()
+    }
 
+    fn part2(&mut self) -> String {
         // Part 2 asks us to order the entire list to find the index of [[2]] and [[6]]
         // That's equivalent to counting how many items [[2]] and [[6]] greater than, and that's easier
         let target_a = Packet::List(vec![Packet::List(vec![Packet::Number(2)])]);
@@ -61,10 +61,7 @@ impl Day for Day13 {
             if Packet::are_ordered(packet, &target_a).unwrap() { less_than_a += 1 }
             if Packet::are_ordered(packet, &target_b).unwrap() { less_than_b += 1 }
         }
-        let ans2 = less_than_a * less_than_b;
-
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+        (less_than_a * less_than_b).to_string()
     }
 }
 

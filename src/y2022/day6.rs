@@ -20,13 +20,12 @@ impl Day for Day6 {
     fn answer1(&self) -> String { String::from("1566") }
     fn answer2(&self) -> String { String::from("2265") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        let ans1 = self.find_start_marker();
-        let ans2 = self.find_message_marker();
+    fn part1(&mut self) -> String {
+        self.find_start_marker().to_string()
+    }
 
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.find_message_marker().to_string()
     }
 }
 

@@ -30,16 +30,7 @@ impl Day for Day16 {
     fn answer1(&self) -> String { String::from("2265") }
     fn answer2(&self) -> String { String::from("?") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        /*
-        for valve in self.valves.values() {
-            println!("{valve}");
-        }
-        */
-
-        //println!("{}", self.valves.len());
-
+    fn part1(&mut self) -> String {
         let initial_state = State {
             at_id: "AA".to_string(),
             time_left: 30,
@@ -48,12 +39,12 @@ impl Day for Day16 {
             active_ids: Vec::new(),
         };
 
-        let ans1 = self.find_best(&initial_state, &mut HashMap::new());
+        self.find_best(&initial_state, &mut HashMap::new()).to_string()
 
-        let ans2 = 0;
+    }
 
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        "unsolved".to_string()
     }
 }
 

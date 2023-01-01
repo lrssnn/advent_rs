@@ -29,14 +29,13 @@ impl Day for Day19 {
     fn answer1(&self) -> String { String::from("790") }
     fn answer2(&self) -> String { String::from("7350") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         // A smarter man would re-use the calculation of the first three states, but I simply do not want to
-        let ans1: usize = self.blueprints.par_iter().map(|bp| bp.evaluate()).sum();
-        let ans2: usize = self.blueprints.par_iter().take(3).map(|bp| bp.evaluate_2()).product();
+        self.blueprints.par_iter().map(|bp| bp.evaluate()).sum::<usize>().to_string()
+    }
 
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.blueprints.par_iter().take(3).map(|bp| bp.evaluate_2()).product::<usize>().to_string()
     }
 }
 

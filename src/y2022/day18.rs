@@ -5,6 +5,7 @@ use super::super::day::Day;
 pub struct Day18
 {
     cubes: Vec<Cube>,
+    air_cubes: Option<Vec<Cube>>,
 }
 
 impl Day18 {
@@ -16,7 +17,7 @@ impl Day18 {
         let cubes = input.lines()
             .map(Cube::from_str).collect::<Vec<_>>();
 
-        Day18 { cubes }
+        Day18 { cubes, air_cubes: None }
     }
 }
 
@@ -25,14 +26,20 @@ impl Day for Day18 {
     fn answer1(&self) -> String { String::from("3466") }
     fn answer2(&self) -> String { String::from("?") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         let air_cubes: Vec<Cube> = self.cubes.iter()
             .flat_map(|cube| cube.neighbours().iter()
                 .filter(|n| !self.cubes.contains(n)).copied().collect::<Vec<_>>()
             ).collect();
 
-        let ans1 = air_cubes.len();
+        let ans = air_cubes.len().to_string();
+        self.air_cubes = Some(air_cubes);
+
+        ans
+    }
+
+    fn part2(&mut self) -> String {
+        let air_cubes = self.air_cubes.as_ref().unwrap();
 
         let mut contained_air: Vec<Cube> = air_cubes.iter()
             .filter(|cube| cube.neighbours().iter()
@@ -42,7 +49,7 @@ impl Day for Day18 {
         //contained_air.dedup();
         
 
-        println!("{} contained cubes", contained_air.len());
+        //println!("{} contained cubes", contained_air.len());
         
 
         // we need to remove any interior cubes. To do that, grab all the air cubes that can
@@ -71,10 +78,7 @@ impl Day for Day18 {
                 .all(|n| !exterior_cubes.contains(n)))
                 */
 
-        let ans2 = ans1 - contained_air.len();
-
-        println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+        (air_cubes.len() - contained_air.len()).to_string()
     }
 }
 

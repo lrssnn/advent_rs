@@ -5,6 +5,7 @@ const KEY: isize = 811589153;
 pub struct Day20
 {
     numbers: Vec<(usize,isize)>,
+    numbers_2: Vec<(usize, isize)>,
 }
 
 impl Day20 {
@@ -16,7 +17,9 @@ impl Day20 {
         let numbers = input.trim().lines()
             .map(|line| line.parse().unwrap()).enumerate().collect::<Vec<_>>();
 
-        Day20 { numbers }
+        let numbers_2 = numbers.clone();
+
+        Day20 { numbers, numbers_2 }
     }
 }
 
@@ -25,17 +28,14 @@ impl Day for Day20 {
     fn answer1(&self) -> String { String::from("2622") }
     fn answer2(&self) -> String { String::from("1538773034088") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        let original_list = self.numbers.clone();
-        let ans1 = self.get_coords(1);
+    fn part1(&mut self) -> String {
+        self.get_coords(1).to_string()
+    }
 
-        // apply the key now
-        self.numbers = original_list.iter().map(|item| (item.0, item.1 * KEY)).collect();
-        let ans2 = self.get_coords(10);
-
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        // apply the key now. This is gross
+        self.numbers = self.numbers_2.iter().map(|item| (item.0, item.1 * KEY)).collect();
+        self.get_coords(10).to_string()
     }
 }
 

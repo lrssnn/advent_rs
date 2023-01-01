@@ -4,20 +4,14 @@
     fn answer1(&self) -> String;
     fn answer2(&self) -> String;
 
-    fn solve(&mut self) -> (String, String);
+    fn part1(&mut self) -> String;
+    fn part2(&mut self) -> String;
 
-    fn validate(&self, candidates: (String, String)) -> (char, char) {
-        (if candidates.0 == self.answer1() {'✓'} else {'x'}, 
-         if candidates.1 == self.answer2() {'✓'} else {'x'})
+    fn validate1(&self, candidate: &String) -> char {
+        if candidate.eq(&self.answer1()) {'✓'} else {'x'} 
     }
 
-    /*
-    fn get_lines(path: &'static str) -> Vec<&str> {
-        fs::read_to_string(path)
-            .expect("File Read Error")
-            .trim()
-            .split('\n')
-            .collect()
-    } 
-    */
+    fn validate2(&self, candidate: &String) -> char {
+        if candidate.eq(&self.answer2()) {'✓'} else {'x'} 
+    }
 }

@@ -30,17 +30,16 @@ impl Day for Day5 {
     fn answer1(&self) -> String { String::from("FWNSHLDNZ") }
     fn answer2(&self) -> String { String::from("RNRGDNFQG") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         for step in &self.steps {
             apply_step(&mut self.ship_pt1, step);
             apply_step_chunked(&mut self.ship_pt2, step);
         }
-        let ans1 = get_top_string(&self.ship_pt1);
-        let ans2 = get_top_string(&self.ship_pt2);
+        get_top_string(&self.ship_pt1)
+    }
 
-        //println!("{}, {}", ans1, ans2);
-        (ans1, ans2)
+    fn part2(&mut self) -> String {
+        get_top_string(&self.ship_pt2)
     }
 }
 

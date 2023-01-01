@@ -4,6 +4,7 @@ mod y2022;
 mod day;
 
 use std::env;
+use std::io::Write;
 use std::time::Instant;
 use std::time::Duration;
 
@@ -76,18 +77,36 @@ fn test(full: bool)
 
     println!("Total construction time {}ms", construction_time.as_millis());
 
-    println!("+-----+---+---+-----------------+");
-    println!("| Day | 1 | 2 | Solve Time (ms) |");
-    println!("+-----+---+---+-----------------+");
+    println!("+-----+---------------+---------------+");
+    println!("| Day |       1       |       2       |");
+    println!("+-----+---------------+---------------+");
     let mut total_millis = Duration::from_secs(0);
     for mut day in days {
-        let start = Instant::now();
-        let answers = day.solve();
-        let solve_time = start.elapsed();
-        total_millis += solve_time;
-        let valids = day.validate(answers);
-        println!("|  {} | {} | {} | {:15} |", day.day_name(), valids.0, valids.1, (solve_time.as_micros() as f32 / 1000.0));
+        print!("|  {} |", day.day_name());
+        std::io::stdout().flush().unwrap();
+
+        let start_1 = Instant::now();
+        let ans1 = day.part1();
+        let solve_time_1 = start_1.elapsed();
+        total_millis += solve_time_1;
+        let valid_1 = day.validate1(&ans1);
+        print!(" {:10.3}: {} |", (solve_time_1.as_micros() as f32 / 1000.0), valid_1);
+        std::io::stdout().flush().unwrap();
+
+        let start_2 = Instant::now();
+        let ans2 = day.part2();
+        let solve_time_2 = start_2.elapsed();
+        total_millis += solve_time_2;
+        let valid_2 = day.validate2(&ans2);
+        print!(" {:10.3}: {} |", (solve_time_2.as_micros() as f32 / 1000.0), valid_2);
+        std::io::stdout().flush().unwrap();
+
+        //if !full {
+            print!("     1: {ans1}, 2: {ans2}");
+        //}
+
+        println!();
     }
-    println!("+-----+---+---+-----------------+");
-    println!("  Total solve time {} ms", (total_millis.as_micros() as f32 / 1000.0));
+    println!("+-----+---------------+---------------+");
+    println!("  Total solve time {:.2} ms ({:.2} s)", (total_millis.as_micros() as f32 / 1000.0), (total_millis.as_millis() as f32 / 1000.0));
 }

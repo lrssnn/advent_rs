@@ -6,6 +6,7 @@ use super::super::day::Day;
 pub struct Day11
 {
     monkeys: HashMap<usize, Monkey>,
+    worry_mod: usize,
 }
 
 impl Day11 {
@@ -17,7 +18,7 @@ impl Day11 {
         let monkeys = input.trim().split("\n\n")
             .map(Monkey::from_str).map(|m| (m.id, m)).collect();
 
-        Day11 { monkeys }
+        Day11 { monkeys, worry_mod: 0 }
     }
 }
 
@@ -26,18 +27,17 @@ impl Day for Day11 {
     fn answer1(&self) -> String { String::from("76728") }
     fn answer2(&self) -> String { String::from("21553910156") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         //for monkey in self.monkeys.values() { println!("{monkey}"); }
         let mut copy = self.monkeys.clone();
         
-        let worry_mod = self.monkeys.values().map(|monkey| monkey.test_divisor).product();
+        self.worry_mod = self.monkeys.values().map(|monkey| monkey.test_divisor).product();
 
-        let ans1 = Self::find_active_score(&mut self.monkeys, 20, true, worry_mod);
-        let ans2 = Self::find_active_score(&mut copy, 10000, false, worry_mod);
+        Self::find_active_score(&mut copy, 20, true, self.worry_mod).to_string()
+    }
 
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        Self::find_active_score(&mut self.monkeys, 10000, false, self.worry_mod).to_string()
     }
 }
 

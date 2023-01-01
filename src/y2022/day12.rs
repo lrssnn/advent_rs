@@ -34,20 +34,20 @@ impl Day for Day12 {
     fn answer1(&self) -> String { String::from("361") }
     fn answer2(&self) -> String { String::from("354") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         let (start, target) = self.find_endpoints();
 
         let path = self.find_shortest_path(&vec![start], target);
 
-        let ans1 = path.len() - 1; // minus one because we count nodes and answer is in STEPS (not including starting node)
+        (path.len() - 1).to_string() // minus one because we count nodes and answer is in STEPS (not including starting node)
+    }
 
+    fn part2(&mut self) -> String {
+        // OPTIMISATION: redoing work
+        let (_, target) = self.find_endpoints();
         let all_starts = self.find_startpoints();
         let path_two = self.find_shortest_path(&all_starts, target);
-        let ans2 = path_two.len() - 1;
-
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+        (path_two.len() - 1).to_string()
     }
 }
 

@@ -6,6 +6,7 @@ const WIDTH: usize = 99;
 pub struct Day8
 {
     trees: [[usize; WIDTH]; WIDTH],
+    best_score: usize, // For this one, we just save the value we already found in part 1
 }
 
 impl Day8 {
@@ -20,7 +21,7 @@ impl Day8 {
             ).collect::<Vec<_>>().try_into().unwrap()
         ).collect::<Vec<_>>().try_into().unwrap();
 
-        Day8 { trees }
+        Day8 { trees, best_score: 0 }
     }
 }
 
@@ -29,14 +30,14 @@ impl Day for Day8 {
     fn answer1(&self) -> String { String::from("1825") }
     fn answer2(&self) -> String { String::from("235200") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         let (num_visible, best_score) = self.evaluate();
-        let ans1 = num_visible;
-        let ans2 = best_score;
+        self.best_score = best_score;
+        num_visible.to_string()
+    }
 
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.best_score.to_string()
     }
 }
 

@@ -37,8 +37,7 @@ impl Day for Day15 {
     fn answer1(&self) -> String { String::from("6425133") }
     fn answer2(&self) -> String { String::from("10996191429555") }
 
-    fn solve(&mut self) -> (String, String)
-    {
+    fn part1(&mut self) -> String {
         let coverage_ranges = self.scanners.iter().filter_map(|s| s.coverage_horizontal(PART1_TARGET_Y)).collect::<Vec<_>>();
         // we have an iterator of ranges, find the total covered area....
         // This seems like a bad way to do this
@@ -50,14 +49,13 @@ impl Day for Day15 {
             coverage_ranges.iter().any(|r| Self::check_cell(r, x))
         ).count();
         
-        let ans1 = covered - 1; // Why is this a minus 1, not minus target row beacons . len() ? not sure !
+        (covered - 1).to_string() // Why is this a minus 1, not minus target row beacons . len() ? not sure !
+    }
 
-        let ans2 = (0..CHUNKS).into_par_iter().find_map_any(|chunk| {
+    fn part2(&mut self) -> String {
+        (0..CHUNKS).into_par_iter().find_map_any(|chunk| {
             self.check_chunk(chunk)
-        }).expect("Didn't find answer...");
-
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+        }).expect("Didn't find answer...").to_string()
     }
 }
 

@@ -25,18 +25,18 @@ impl Day for Day1 {
     fn answer1(&self) -> String { String::from("72017") }
     fn answer2(&self) -> String { String::from("212520") }
 
-    fn solve(&mut self) -> (String, String)
+    fn part1(&mut self) -> String
     {
         self.sums.sort();
         let len = self.sums.len();
         let max = self.sums[len-1];
 
-        let ans1 = max;
-        
-        let top_three: usize = self.sums[len-3..].iter().sum();
-        let ans2 = top_three;
-
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string(), ans2.to_string())
+        max.to_string()
+    }
+    
+    fn part2(&mut self) -> String
+    {
+        let top_three: usize = self.sums[self.sums.len()-3..].iter().sum();
+        top_three.to_string()
     }
 }

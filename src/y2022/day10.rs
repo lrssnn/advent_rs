@@ -25,13 +25,12 @@ impl Day for Day10 {
     fn answer1(&self) -> String { String::from("15680") }
     fn answer2(&self) -> String { String::from("ZFBFHGUP") }
 
-    fn solve(&mut self) -> (String, String)
-    {
-        let ans1 = self.process();
-        let ans2 = "ZFBFHGUP";
+    fn part1(&mut self) -> String {
+        self.process().to_string()
+    }
 
-        //println!("{ans1}, {ans2}");
-        (ans1.to_string() , ans2.to_string())
+    fn part2(&mut self) -> String {
+        "ZFBFHGUP".to_string()
     }
 }
 

@@ -24,13 +24,13 @@ impl Day for Day2 {
     fn answer1(&self) -> String { String::from("11767") }
     fn answer2(&self) -> String { String::from("13886") }
 
-    fn solve(&mut self) -> (String, String)
+    fn part1(&mut self) -> String
     {
-        let ans1: usize = self.turns.iter().map(|t| t.score_1()).sum();
-        let ans2: usize = self.turns.iter().map(|t| t.score_2()).sum();
+        self.turns.iter().map(|t| t.score_1()).sum::<usize>().to_string()
+    }
 
-        //println!("{}, {}", ans1, ans2);
-        (ans1.to_string(), ans2.to_string())
+    fn part2(&mut self) -> String {
+        self.turns.iter().map(|t| t.score_2()).sum::<usize>().to_string()
     }
 }
 
