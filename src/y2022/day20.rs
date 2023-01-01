@@ -27,29 +27,27 @@ impl Day for Day20 {
 
     fn solve(&mut self) -> (String, String)
     {
-        //let mixed = self.mix();
         let original_list = self.numbers.clone();
         let ans1 = self.get_coords(1);
+
         // apply the key now
         self.numbers = original_list.iter().map(|item| (item.0, item.1 * KEY)).collect();
         let ans2 = self.get_coords(10);
 
-        println!("{ans1}, {ans2}");
+        //println!("{ans1}, {ans2}");
         (ans1.to_string() , ans2.to_string())
     }
 }
 
 impl Day20 {
     fn get_coords(&mut self, rounds: usize) -> isize {
-        for _ in 0..rounds {
+        for _round in 0..rounds {
             self.mix();
         }
+
         let mixed = &self.numbers;
         let wrap = mixed.len();
         let zero_index = mixed.iter().position(|&i| i.1 == 0).unwrap();
-        println!("{}", mixed[(zero_index + 1000) % wrap].1);
-        println!("{}", mixed[(zero_index + 2000) % wrap].1);
-        println!("{}", mixed[(zero_index + 3000) % wrap].1);
 
         mixed[(zero_index + 1000) % wrap].1 +
         mixed[(zero_index + 2000) % wrap].1 +
@@ -57,7 +55,7 @@ impl Day20 {
     }
 
     fn mix(&mut self) {
-        for original_index in 0..self.numbers.len() as usize {
+        for original_index in 0..self.numbers.len() {
             let source = self.numbers.iter().position(|x| x.0 == original_index).unwrap();
             let num = self.numbers[source].1;
             let mut target = source as isize + num;
