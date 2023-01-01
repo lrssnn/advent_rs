@@ -69,18 +69,3 @@ impl Day20 {
         }
     }
 }
-
-fn wrapped_add(left: isize, right: isize, len: usize) -> usize {
-    //println!("Wrapping {left} + {right} (by {wrap})");
-    let wrap = (len - 1) as isize;
-    let mut res = (left + right) % wrap;
-    if res < 0 {
-        res += wrap;
-    }
-
-    if res >= wrap {
-        res -= wrap;
-    }
-
-    res as usize
-}
