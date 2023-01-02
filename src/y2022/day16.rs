@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::HashMap};
+﻿use std::{fmt::Display, collections::HashMap, iter};
 
 use super::super::day::Day;
 
@@ -35,12 +35,18 @@ impl Day for Day16 {
             at_id: "AA".to_string(),
             time_left: 30,
             score: 0,
-            score_inc: 0,
             active_ids: Vec::new(),
         };
+        for valve in &self.valves {
+            println!("{}", valve.1);
+        }
+        println!("__");
+        self.consolidate_zero_rate_valves();
+        for valve in &self.valves {
+            println!("{}", valve.1);
+        }
 
         self.find_best(&initial_state, &mut HashMap::new()).to_string()
-
     }
 
     fn part2(&mut self) -> String {
@@ -55,14 +61,22 @@ impl Day16 {
             return *cached;
         }
 
-        //println!("{from}");
+        let this_valve = self.valves.get(&from.at_id).unwrap();
+
+        /*
+        println!("{from}");
+        println!("This valve: {this_valve}");
+        */
 
         // Check for terminal state:
-        if from.time_left == 0 {
+        let min_time = this_valve.paths.iter().map(|path| path.1).min().unwrap();
+        if from.time_left < min_time {
+            // if we have time, we should turn on this valve. Hacky
+            if from.time_left > 0 && !from.active_ids.contains(&from.at_id) {
+                return from.score + (this_valve.rate * from.time_left);
+            }
             return from.score;
         }
-
-        let this_valve = self.valves.get(&from.at_id).unwrap();
 
         let mut children = vec![];
 
@@ -71,16 +85,48 @@ impl Day16 {
             let score = self.find_best(&from.activate(&from.at_id, this_valve.rate), cache);
             cache.insert(from.clone(), score);
             return score;
-            //children.push(from.activate(&from.at_id, this_valve.rate));
         }
 
-        for destination in &this_valve.tunnel_ids {
-            children.push(from.travel_to(destination));
+        for destination in &this_valve.paths {
+            if destination.1 <= from.time_left {
+                children.push(from.travel_to(destination));
+            }
         }
 
         let score = children.iter().map(|state| self.find_best(state, cache)).max().unwrap();
         cache.insert(from.clone(), score);
         score
+    }
+
+    fn consolidate_zero_rate_valves(&mut self) {
+        // There must be a cleverer way to manage multiple steps than this...
+        let mut new_valves = self.valves.clone();
+
+        let mut next_key = new_valves.values().find(|v| v.rate == 0 && v.id.ne("AA")).unwrap().id.to_string();
+        while let Some(dead_valve) = new_valves.remove(&next_key) {
+            // For each place this valve can go, replace that one's path to here with paths to this one's other places
+
+            for (other_id, dead_other) in &dead_valve.paths {
+                let other = new_valves.get_mut(other_id).unwrap();
+
+                for (dest_id, dead_dest) in &dead_valve.paths {
+                    if dest_id.ne(&other.id) {
+                        other.paths.push((dest_id.to_string(), dead_other + dead_dest));
+                    }
+                }
+
+                let remove_index = other.paths.iter().position(|e| e.0.eq(&dead_valve.id)).unwrap();
+                other.paths.remove(remove_index);
+            }
+
+            if let Some(next_valve) = new_valves.values().find(|v| v.rate == 0 && v.id.ne("AA")) {
+                next_key = next_valve.id.to_string();
+            } else {
+                next_key = "INVALID - WONT FIND IN WHILE LET ABOVE".to_string();
+            }
+        }
+        
+        self.valves = new_valves;
     }
 }
 
@@ -89,7 +135,6 @@ struct State {
     at_id: String,
     time_left: u32,
     score: u32,
-    score_inc: u32,
     active_ids: Vec<String>,
 }
 
@@ -101,28 +146,26 @@ impl State {
         State {
             at_id: self.at_id.clone(),
             time_left: self.time_left - 1,
-            score: self.score + self.score_inc,
-            score_inc: self.score_inc + value,
+            score: self.score + (value * (self.time_left - 1)),
             active_ids,
         }
     }
 
-    fn travel_to(&self, destination: &str) -> State {
+    fn travel_to(&self, destination: &(String, u32)) -> State {
         State {
-            at_id: destination.to_string(),
-            time_left: self.time_left - 1,
-            score: self.score + self.score_inc,
-            score_inc: self.score_inc,
+            at_id: destination.0.to_string(),
+            time_left: self.time_left - destination.1,
+            score: self.score,
             active_ids: self.active_ids.clone(),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Valve {
     id: String,
     rate: u32,
-    tunnel_ids: Vec<String>,
+    paths: Vec<(String, u32)>,
 }
 
 impl Valve {
@@ -132,19 +175,19 @@ impl Valve {
             // single valve
             parts = input.split("valve ").collect::<Vec<_>>();
         }
-        let tunnel_ids = parts[1].split(", ").map(|s| s.to_string()).collect::<Vec<_>>();
+        let paths = parts[1].split(", ").map(|s| s.to_string()).zip(iter::repeat(1)).collect::<Vec<_>>();
         let parts = parts[0].split(' ').collect::<Vec<_>>();
         let id = parts[1].to_string();
         let rate_s = parts[4];
         let rate = rate_s[5..rate_s.len()-1].parse::<u32>().unwrap();
-        Valve { id, rate, tunnel_ids }
+        Valve { id, rate, paths }
     }
 }
 
 impl Display for Valve {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ({}) -> {}", self.id, self.rate,
-            self.tunnel_ids.iter().fold("".to_string(), |acc, x| acc + x + ",")
+        write!(f, "{:02} ({}) -> {}", self.id, self.rate,
+            self.paths.iter().fold("".to_string(), |acc, x| acc + &x.1.to_string() + ": " + &x.0 + ",")
         )
     }
 }
