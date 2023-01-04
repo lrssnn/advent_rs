@@ -1,4 +1,4 @@
-﻿use std::fmt::Display;
+﻿use std::{fmt::Display, collections::HashMap};
 
 use super::super::day::Day;
 
@@ -34,28 +34,70 @@ impl Day for Day17 {
             game.run_rock();
         }
 
-        (game.rows.len() + game.dead_rows).to_string()
+        game.height().to_string()
     }
 
     fn part2(&mut self) -> String {
-        /*
-        for _turn in 2023..(1000000000000 as usize) {
-            //println!("{}, {}", game.jet_counter, game.spawn_counter);
-            if game.jet_counter == 0 && game.spawn_counter == 0 {
-                println!("0, 0. Turn is {_turn}");
-            }
+        let mut game = Game::new(self.jets.clone());
+
+        let mut seen_states: HashMap<State, (usize, usize)> = HashMap::new();
+
+        const TURNS_TARGET: usize = 1_000_000_000_000;
+
+        for turn in 1..=TURNS_TARGET {
+
             game.run_rock();
-            //if _turn % 1000000 == 0 { println!("Turn {_turn} ({:.02}%)", (_turn as f32 * 100.0) / 1000000000000.0); }
+
+            let state = game.get_state();
+            if let Some((turns_processed_last_seen, size_last_seen)) = seen_states.get(&state) {
+                let cycle_turns = turn - turns_processed_last_seen;
+                let cycle_growth = game.height() - size_last_seen;
+
+                println!("The turn is {turn}, last saw it at {turns_processed_last_seen} ({cycle_turns} turns ago)");
+
+                let remaining_turns = TURNS_TARGET - turn;
+
+                let needed_cycles = remaining_turns / cycle_turns;
+
+                let remainder_turns = remaining_turns % cycle_turns;
+
+                println!("{remainder_turns} left over");
+
+                let skipped_growth = cycle_growth * needed_cycles;
+
+                println!("Grew {cycle_growth} in those turns {}: total growth", skipped_growth);
+
+                println!("Processing {remainder_turns} remaining turns");
+                let height_before = game.height();
+                for _turn in 0..remainder_turns {
+                    game.run_rock();
+                }
+
+                let grew = game.height() - height_before;
+
+                let answer = game.height() + skipped_growth;
+                println!("Correct?: {}", answer == 1514285714288);
+                return answer.to_string();
+            } else {
+                seen_states.insert(state, (turn, game.height()));
+            }
         }
 
-        let ans2 = game.rows.len() + game.dead_rows;
-        */
-
-        "Unsolved".to_string()
+        println!("I doubt it!");
+        let ans2 = game.height();
+        ans2.to_string()
     }
 }
 
 impl Day17 {
+}
+
+// For detecting cycles
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct State { 
+    spawn_counter: u8,
+    jet_counter: usize,
+    rows_top: [[Cell; 7]; 5],
 }
 
 struct Game {
@@ -69,6 +111,10 @@ struct Game {
 impl Game {
     fn new(jets: Vec<Jet>) -> Game {
         Game { rows: Vec::new(), spawn_counter: 0, jets, jet_counter: 0, dead_rows: 0}
+    }
+
+    fn height(&self) -> usize {
+        self.rows.len() + self.dead_rows
     }
 
     fn run_rock(&mut self) {
@@ -230,9 +276,23 @@ impl Game {
             }
         }
     }
+
+    fn get_state(&self) -> State {
+        State {
+            spawn_counter: self.spawn_counter,
+            jet_counter: self.jet_counter,
+            rows_top: [
+                *self.rows.get(0).unwrap_or(&[Cell::Empty; 7]), 
+                *self.rows.get(1).unwrap_or(&[Cell::Empty; 7]), 
+                *self.rows.get(2).unwrap_or(&[Cell::Empty; 7]), 
+                *self.rows.get(3).unwrap_or(&[Cell::Empty; 7]), 
+                *self.rows.get(4).unwrap_or(&[Cell::Empty; 7]), 
+            ],
+        }
+    }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 enum Cell {
     Empty,
     Active,
