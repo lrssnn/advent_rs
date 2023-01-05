@@ -121,6 +121,8 @@ impl State {
     }
 
     fn step(&self, bp: &Blueprint) -> Vec<State> {
+        // Optimisation: There are insights to be had here about the value of making purchases once we have enough bots 
+        // to buy a geode bot every turn.
         let mut result = Vec::with_capacity(5);
         result.push(self.construct_bot(&Purchase::nothing()));
 
