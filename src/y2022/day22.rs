@@ -1,6 +1,11 @@
-﻿use std::{fmt::Display, collections::HashMap, rc::Rc};
+﻿use std::fmt::Display;
 
 use super::super::day::Day;
+
+/*
+const WIDTH: usize = 150;
+const HEIGHT: usize = 200;
+*/
 
 const WIDTH: usize = 16;
 const HEIGHT: usize = 12;
@@ -29,7 +34,7 @@ impl Day22 {
                 line
             }).collect::<Vec<_>>().try_into().unwrap();
 
-        let moves = Move::vec_from_str(moves_s);
+        let moves = Move::vec_from_str(moves_s.trim());
 
         Day22 { board, moves }
     }
@@ -41,46 +46,102 @@ impl Day22 {
             }
             println!();
         }
-    }
-
-    fn process(&self) -> (Position, Direction) {
-        let x = self.board[0].iter().position(|&c| c == Cell::Open);
-        let mut pos = Position {x: 0, y: 0};
+     }
+    
+    fn process(&self, wrap_strategy: &dyn Fn(Position, Direction) -> (Position, Direction)) -> (Position, Direction) {
+        let x = self.board[0].iter().position(|&c| c == Cell::Open).unwrap();
+        let mut pos = Position {x, y: 0};
         let mut fac = Direction::East;
 
         for m in &self.moves {
-            (pos, fac) = process_move(m, pos, fac, &self.board);
+            //print_board_location(&self.board,&pos);
+            (pos, fac) = process_move(m, pos, fac, &self.board, &move_strategy_part_1);
         }
-
 
         (pos, fac)
     }
 }
 
-fn process_move(m: &Move, mut pos: Position, mut fac: Direction, board: &Board) -> (Position, Direction) {
+fn process_move(m: &Move, mut pos: Position, mut fac: Direction, board: &Board, wrap_strategy: &dyn Fn(Position, Direction) -> (Position, Direction)) -> (Position, Direction) {
+    //println!("Processing '{m}'");
     match m {
         Move::Right => (pos, fac.turn_right()),
         Move::Left => (pos, fac.turn_left()),
         Move::Steps(steps) => {
             for _step in 0..*steps {
-                pos = pos.take_step(fac, board);
+                let new_pos = pos.take_step(fac, board, wrap_strategy);
+                //println!("After {_step} steps: ");
+                //print_board_location(&board, &new_pos);
+                if new_pos.0 == pos {
+                    break;
+                }
+                (pos, fac) = new_pos;
             }
             (pos, fac)
         },
     }
 }
 
+fn print_board_location(board: &Board, pos: &Position) {
+    for (y, row) in board.iter().enumerate() {
+        for (x, cell) in row.iter().enumerate() {
+            if pos.x == x && pos.y == y{
+                print!("X");
+            } else {
+                print!("{cell}");
+            }
+        }
+        println!();
+    }
+}
+
+fn move_strategy_part_1(pos: Position, facing: Direction) -> (Position, Direction) {
+    // part 1 can't change your facing, but part 2 can
+    let result = if pos.x == 0 && facing == Direction::West {
+        Position { x: WIDTH - 1, y: pos.y }
+    } else if pos.x == WIDTH - 1 && facing == Direction::East {
+        Position { x: 0, y: pos.y }
+    } else if pos.y == 0 && facing == Direction::North {
+        Position { x: pos.x, y: HEIGHT - 1 }
+    } else if pos.y == HEIGHT - 1 && facing == Direction::South {
+        Position { x: pos.x, y: 0 }
+    } else {
+        let offset = facing.offset();
+        Position { x: (pos.x as i32 + offset.0) as usize, y: (pos.y as i32 + offset.1) as usize}
+    };
+    
+    (result, facing)
+}
+
+fn move_strategy_part_2(pos: Position, facing: Direction) -> (Position, Direction) {
+    let result = if pos.x == 0 && facing == Direction::West {
+        Position { x: WIDTH - 1, y: pos.y }
+    } else if pos.x == WIDTH - 1 && facing == Direction::East {
+        Position { x: 0, y: pos.y }
+    } else if pos.y == 0 && facing == Direction::North {
+        Position { x: pos.x, y: HEIGHT - 1 }
+    } else if pos.y == HEIGHT - 1 && facing == Direction::South {
+        Position { x: pos.x, y: 0 }
+    } else {
+        let offset = facing.offset();
+        Position { x: (pos.x as i32 + offset.0) as usize, y: (pos.y as i32 + offset.1) as usize}
+    };
+    
+    (result, facing)
+}
+
+
 impl Day for Day22 {
     fn day_name(&self) -> String { String::from("22") }
-    fn answer1(&self) -> String { String::from("Unknown") }
+    fn answer1(&self) -> String { String::from("65368") }
     fn answer2(&self) -> String { String::from("Unknown") }
 
     fn part1(&mut self) -> String {
-        println!();
-        self.print_board();
-        println!();
-        for m in &self.moves { print!("{m} ")};
-        println!();
+        //println!();
+        //self.print_board();
+        //println!();
+        //for m in &self.moves { print!("{m} ")};
+        //println!();
 
         let (pos, facing) = self.process();
         let password = (1000 * (pos.y + 1)) + (4 * (pos.x + 1)) + facing.value();
@@ -88,7 +149,9 @@ impl Day for Day22 {
     }
 
     fn part2(&mut self) -> String {
-        "unsolved".to_string()
+        let (pos, facing) = self.process();
+        let password = (1000 * (pos.y + 1)) + (4 * (pos.x + 1)) + facing.value();
+        password.to_string()
     }
 }
 
@@ -115,7 +178,7 @@ enum Move {
 impl Move {
     fn vec_from_str(input: &str) -> Vec<Move> {
         let mut result = vec![];
-        let mut working = "";
+
         let mut chars = input.chars().peekable();
         while let Some(c) = chars.next() {
             result.push(
@@ -128,6 +191,7 @@ impl Move {
                     while let Some(next) = chars.next_if(|e| e.is_numeric()) {
                         num += &next.to_string();
                     }
+                    //println!("'{num}'");
                     Move::Steps(num.parse().unwrap()) 
                 }
             );
@@ -137,29 +201,37 @@ impl Move {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
 struct Position {
     x: usize, y: usize
 }
 impl Position {
-    fn take_step(&self, fac: Direction, board: &Board) -> Position {
-        let offset = match fac {
-            Direction::North => (0, -1),
-            Direction::South => (0, 1),
-            Direction::East => (1, 0),
-            Direction::West => (-1, 0),
-        };
+    fn take_step(&self, fac: Direction, board: &Board, wrap_strategy: &dyn Fn(Position, Direction) -> (Position, Direction)) -> (Position, Direction) {
+        let mut now = (*self, fac);
+        let mut next = wrap_strategy(*self, fac);
+        //println!("Next = {next} '{}'", board[next.y][next.x]);
 
-        let mut next = self.wrap_step(offset);
-        while board[next.y][next.x] == Cell::Skip {
-            next = self.wrap_step(offset);
+        loop {
+            if board[next.0.y][next.0.x] == Cell::Skip {
+                now = next;
+                next = wrap_strategy(next.0, next.1);
+                //println!("Next = {next} '{}'", board[next.y][next.x]);
+            } else if board[next.0.y][next.0.x] == Cell::Wall {
+                // THis is a horrible way to deal with being stopped after a wrap
+                if board[now.0.y][now.0.x] == Cell::Skip {
+                    return now.0.take_step(fac.reverse(), &board, wrap_strategy);
+                }
+                return now;
+            } else {
+                return next
+            }
         }
-        next
     }
 
     // Maybe this would be cleaner if it took a Direction instead. Would clean up above
     fn wrap_step(&self, offset: (i32, i32)) -> Position {
         // Gross :)
-        if self.x == 0 && offset.0 == -1 {
+        let result = if self.x == 0 && offset.0 == -1 {
             Position { x: WIDTH - 1, y: (self.y as i32 + offset.1) as usize }
         } else if self.x == WIDTH - 1 && offset.0 == 1 {
             Position { x: 0, y: (self.y as i32 + offset.1) as usize }
@@ -169,11 +241,13 @@ impl Position {
             Position { x: (self.x as i32 + offset.0) as usize, y: 0 }
         } else {
             Position { x: (self.x as i32 + offset.0) as usize, y: (self.y as i32 + offset.1) as usize}
-        }
+        };
+        
+        result
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Direction {
     North, South, East, West,
 }
@@ -202,6 +276,24 @@ impl Direction {
             Direction::South => 1,
             Direction::East => 0,
             Direction::West => 2,
+        }
+    }
+
+    pub(crate) fn reverse(&self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::East => Direction::West,
+            Direction::West => Direction::East,
+        }
+    }
+
+    fn offset(&self) -> (i32, i32) {
+        match self {
+            Direction::North => (0, -1),
+            Direction::South => (0, 1),
+            Direction::East => (1, 0),
+            Direction::West => (-1, 0),
         }
     }
 }
