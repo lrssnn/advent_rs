@@ -2,13 +2,13 @@
 
 use super::super::day::Day;
 
+/*
 const WIDTH: usize = 150;
 const HEIGHT: usize = 200;
+*/
 
-/*
 const WIDTH: usize = 16;
 const HEIGHT: usize = 12;
-*/
 
 const COL_WIDTH : usize = WIDTH / 4;
 const ROW_HEIGHT: usize = HEIGHT / 3;
@@ -24,7 +24,7 @@ impl Day22 {
     pub fn new() -> Day22
     {
         let input = include_str!("input22");
-        //let input = include_str!("input22_example");
+        let input = include_str!("input22_example");
 
         let (board_s, moves_s) = input.split_once("\n\n").unwrap();
 
@@ -154,18 +154,9 @@ fn wrap_up_simple(pos: Position) -> usize {
 
 fn wrap_right_cube(pos: Position, fac: Direction) -> (Position, Direction) {
     match which_row(&pos) {
-        1 => { if pos.x == face_end_x(1) { 
-            // more y on the 1 Face = less y on the 6 face
-            return (Position {x: face_end_x(6), y: face_end_y(6) - y_on_face(&pos, 1) }, Direction::West); 
-        }},
-        2 => { if pos.x == face_end_x(4) { 
-            // More y on the 4 Face = less x on the 6 face
-            return (Position {x: face_end_x(6) - y_on_face(&pos, 4), y: face_start_y(6) }, Direction::South); 
-        }},
-        3 => { if pos.x == face_end_x(6) { 
-            // More y on the 6 Face = less y on the 1 face
-            return (Position {x: face_end_x(1), y: face_end_y(1) - y_on_face(&pos, 6)}, Direction::West); 
-        }},
+        1 => { if pos.x == face_end_x(1) { return map_right_right(&pos, 1, 6) }},
+        2 => { if pos.x == face_end_x(4) { return map_right_top(&pos, 4, 6); }}, 
+        3 => { if pos.x == face_end_x(6) { return map_right_right(&pos, 6, 1); }},
         _ => panic!("Invalid"),
     }
 
@@ -174,21 +165,9 @@ fn wrap_right_cube(pos: Position, fac: Direction) -> (Position, Direction) {
 
 fn wrap_left_cube(pos: Position, fac: Direction) -> (Position, Direction) {
     match which_row(&pos) {
-        1 => { if pos.x == face_start_x(1) {
-                // More y on the 1 face = more x on the 3 face
-                return (Position {x: face_start_x(3) + y_on_face(&pos, 1), y: face_start_y(3)}, Direction::South);
-            }
-        },
-        2 => { if pos.x == face_start_x(2) {
-                // More y on 2 = less x on 6
-                return (Position {x: face_end_x(6) - y_on_face(&pos, 2), y: face_end_y(6)}, Direction::North);
-            }
-        },
-        3 => { if pos.x == face_start_x(5) {
-                // More y on 5 = less x on 3
-                return (Position {x: face_end_x(3) - y_on_face(&pos, 5), y: face_end_y(3)}, Direction::North);
-            }
-        },
+        1 => { if pos.x == face_start_x(1) { return map_left_top(&pos, 1, 3); }},
+        2 => { if pos.x == face_start_x(2) { return map_left_bot(&pos, 2, 6); }},
+        3 => { if pos.x == face_start_x(5) { return map_left_bot(&pos, 5, 3); }},
         _ => panic!("Invalid"),
     }
 
@@ -197,52 +176,71 @@ fn wrap_left_cube(pos: Position, fac: Direction) -> (Position, Direction) {
 
 fn wrap_down_cube(pos: Position, fac: Direction) -> (Position, Direction) {
     match which_col(&pos) {
-        1 => { if pos.y == face_end_y(2) {
-            // more x on 2 = less x on 5
-            return (Position {x: face_end_x(5) - x_on_face(&pos, 2), y: face_end_y(5)}, Direction::North)
-        }},
-        2 => { if pos.y == face_end_y(3) {
-            // more x on 3 = less y on 5
-            return (Position {x: face_start_x(5), y: face_end_y(5) - x_on_face(&pos, 3)}, Direction::East)
-        }},
-        3 => { if pos.y == face_end_y(5) {
-            // more x on 5 = less x on 2
-            return (Position {x: face_end_x(2) - x_on_face(&pos, 5), y: face_end_y(2)}, Direction::North)
-        }},
-        4 => { if pos.y == face_end_y(6) {
-            // more x on 6 = less y on 2
-            return (Position {x: face_start_x(2), y: face_end_y(2) - x_on_face(&pos, 6)}, Direction::East)
-        }},
-
+        1 => { if pos.y == face_end_y(2) { return map_down_down(&pos, 2, 5); }},
+        2 => { if pos.y == face_end_y(3) { return map_down_left(&pos, 3, 5); }},
+        3 => { if pos.y == face_end_y(5) { return map_down_down(&pos, 5, 2); }},
+        4 => { if pos.y == face_end_y(6) { return map_down_left(&pos, 6, 2); }},
         _=> panic!("Invalid"),
     }
-
 
     (Position { x: pos.x, y: pos.y + 1 }, fac)
 }
 
 fn wrap_up_cube(pos: Position, fac: Direction) -> (Position, Direction) {
     match which_col(&pos) {
-        1 => { if pos.y == face_start_y(2) {
-            // more x on 2 = less x on 1
-            return (Position {x: face_end_x(1) - x_on_face(&pos, 2), y: face_start_y(1)}, Direction::South)
-        }},
-        2 => { if pos.y == face_start_y(3) {
-            // more x on 3 = more y on 1
-            return (Position {x: face_start_x(1), y: face_start_y(1) + x_on_face(&pos, 3)}, Direction::East)
-        }},
-        3 => { if pos.y == face_start_y(1) {
-            // more x on 1 = less x on 2
-            return (Position {x: face_end_x(2) - x_on_face(&pos, 1), y: face_start_y(2)}, Direction::South)
-        }},
-        4 => { if pos.y == face_start_y(6) {
-            // more x on 6 = less y on 4
-            return (Position {x: face_end_x(4), y: face_end_y(4) - x_on_face(&pos, 6)}, Direction::West)
-        }},
+        1 => { if pos.y == face_start_y(2) { return map_up_up(&pos, 2, 1); }},
+        2 => { if pos.y == face_start_y(3) { return map_up_left(&pos, 3, 1); }},
+        3 => { if pos.y == face_start_y(1) { return map_up_up(&pos, 1, 2); }},
+        4 => { if pos.y == face_start_y(6) { return map_up_right(&pos, 6, 4) }},
         _ => panic!("Invalid"),
     };
 
     (Position { x: pos.x, y: pos.y - 1}, fac)
+}
+
+fn map_right_right(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more y on the from Face = less y on the to face
+    (Position {x: face_end_x(to), y: face_end_y(to) - y_on_face(&pos, from) }, Direction::West)
+}
+
+fn map_right_top(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // More y on the from Face = less x on the to face
+    (Position {x: face_end_x(to) - y_on_face(&pos, from), y: face_start_y(to) }, Direction::South)
+}
+
+fn map_left_top(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // More y on the from face = more x on the to face
+    (Position {x: face_start_x(to) + y_on_face(&pos, from), y: face_start_y(to)}, Direction::South)
+}
+
+fn map_left_bot(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // More y on from = less x on to
+    (Position {x: face_end_x(to) - y_on_face(&pos, from), y: face_end_y(to)}, Direction::North)
+}
+
+fn map_down_down(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more x on from = less x on to
+    (Position {x: face_end_x(to) - x_on_face(&pos, from), y: face_end_y(to)}, Direction::North)
+}
+
+fn map_down_left(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more x on from = less y on to
+    (Position {x: face_start_x(to), y: face_end_y(to) - x_on_face(&pos, from)}, Direction::East)
+}
+
+fn map_up_up(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more x on from = less x on to
+    (Position {x: face_end_x(to) - x_on_face(&pos, from), y: face_start_y(to)}, Direction::South)
+}
+
+fn map_up_left(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more x on from = more y on to
+    (Position {x: face_start_x(to), y: face_start_y(to) + x_on_face(&pos, from)}, Direction::East)
+}
+
+fn map_up_right(pos: &Position, from: u8, to: u8) -> (Position, Direction) {
+    // more x on from = less y on to
+    (Position {x: face_end_x(to), y: face_end_y(to) - x_on_face(&pos, from)}, Direction::West)
 }
 
 fn which_face(pos: &Position) -> u8 {
@@ -268,6 +266,10 @@ fn which_row(pos: &Position) -> u8 {
     if pos.y < ROW_HEIGHT { 1 }
     else if pos.y < 2 * ROW_HEIGHT { 2 }
     else { 3 }
+}
+
+enum RelationType {
+    Straight,
 }
 
 
