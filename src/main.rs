@@ -30,6 +30,7 @@ use y2022::day19::*;
 use y2022::day20::*;
 use y2022::day21::*;
 use y2022::day22::*;
+use y2022::day23::*;
 
 use crate::day::Day as DayTrait;
 
@@ -70,10 +71,11 @@ fn test(full: bool)
         Box::new(Day20::new()),
         Box::new(Day21::new()),
         Box::new(Day22::new()),
+        Box::new(Day23::new()),
     ]
     } else {
         vec![
-            Box::new(Day22::new()),
+            Box::new(Day23::new()),
         ]
     };
 
