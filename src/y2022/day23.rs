@@ -86,7 +86,7 @@ impl Day23 {
             self.directions.push(first);
         }
 
-        return turns
+        turns
     }
 
     fn process_turn(&mut self) -> bool {
@@ -101,7 +101,7 @@ impl Day23 {
                     return Some((*elf, target));
                 }
             }
-            return None;
+            None
         }).collect();
 
         // Deduplicate proposals aiming for the same place
@@ -119,7 +119,7 @@ impl Day23 {
             }
         });
 
-        return false;
+        false
     }
 }
 
