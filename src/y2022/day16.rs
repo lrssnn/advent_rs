@@ -12,7 +12,7 @@ impl Day16 {
     pub fn new() -> Day16
     {
         let input = include_str!("input16");
-        //let input = include_str!("input16_example");
+        let input = include_str!("input16_example");
 
         let valves = input.trim().split('\n')
             .map(|line| {
@@ -43,7 +43,6 @@ impl Day for Day16 {
     }
 
     fn part2(&mut self) -> String {
-        /*
         let initial_state = State2 {
             me_at: "AA".to_string(),
             elephant_at: "AA".to_string(),
@@ -54,8 +53,7 @@ impl Day for Day16 {
             score: 0,
             active_ids: Vec::new(),
         };
-        */
-        "unsolved".to_string()
+        self.find_best_2(&initial_state, &mut HashMap::new()).to_string()
     }
 }
 
@@ -77,9 +75,11 @@ impl Day16 {
         let min_time = this_valve.paths.iter().map(|path| path.1).min().unwrap();
         if from.time_left < min_time {
             // if we have time, we should turn on this valve. Hacky
+            /*
             if from.time_left > 0 && !from.active_ids.contains(&from.at_id) {
                 return from.score + (this_valve.rate * from.time_left);
             }
+            */
             return from.score;
         }
 
@@ -104,9 +104,94 @@ impl Day16 {
     }
 
     #[allow(dead_code)]
-    fn find_best_2(&self) -> u32 {
-        // TODO Don't think we can just clone above. need to think about this some more...
-        0
+    fn find_best_2(&self, from: &State2, cache: &mut HashMap<State2, u32>) -> u32 {
+        if let Some(cached) = cache.get(from) {
+            return *cached;
+        }
+
+        //println!("{from:?}");
+
+        let me_valve = self.valves.get(&from.me_at).unwrap();
+        let el_valve = self.valves.get(&from.elephant_at).unwrap();
+
+        /*
+        println!("{from}");
+        println!("This valve: {this_valve}");
+        */
+
+        // Check for terminal state:
+        let min_time_me = me_valve.paths.iter().map(|path| path.1).min().unwrap();
+        let min_time_el = el_valve.paths.iter().map(|path| path.1).min().unwrap();
+
+        if from.time_left < min_time_me && from.time_left < min_time_el {
+            // if we have time, we should turn on this valve. Hacky
+            let mut score = from.score;
+            if from.time_left > 0 && !from.active_ids.contains(&from.me_at) {
+                score += me_valve.rate * from.time_left;
+            }
+
+            if from.time_left > 0 && !from.active_ids.contains(&from.elephant_at) {
+                score += el_valve.rate * from.time_left;
+            }
+            if score > 1700 { println!("{score}"); }
+            cache.insert(from.clone(), score);
+            return score;
+        }
+
+        let mut me_choices = vec![];
+        let mut el_choices = vec![];
+
+        // Switch on a valve?
+        if me_valve.rate > 0 && !from.active_ids.contains(&from.me_at) {
+            me_choices.push(Choice::Activate(from.me_at.to_string(), me_valve.rate));
+        }
+
+        // Make sure elephant doesn't also turn on the same valve at the same time
+        if from.elephant_at != from.me_at && el_valve.rate > 0 && !from.active_ids.contains(&from.elephant_at) {
+            el_choices.push(Choice::Activate(from.elephant_at.to_string(), me_valve.rate));
+        }
+
+        // Move?
+        for destination in &me_valve.paths {
+            if destination.1 <= from.time_left {
+                me_choices.push(Choice::Move(destination.clone()));
+            }
+        }
+
+        for destination in &el_valve.paths {
+            if destination.1 <= from.time_left {
+                el_choices.push(Choice::Move(destination.clone()));
+            }
+        }
+
+        /* 
+        println!("My choices...");
+        for c in &me_choices { println!("  {c:?}");}
+
+        println!("Elephant choices...");
+        for c in &el_choices { println!("  {c:?}");}
+*/
+        // The possible child states of this state is the cross product of all my choices and all the elephant's
+        let children = if me_choices.is_empty() {
+            el_choices.iter().map(|el_choice| from.apply_choices(Choice::DoNothing, el_choice.clone())).collect::<Vec<_>>()
+        } else if el_choices.is_empty() {
+            me_choices.iter().map(|me_choice| from.apply_choices(me_choice.clone(), Choice::DoNothing)).collect::<Vec<_>>()
+        } else {
+            me_choices.iter()
+            .flat_map(|me_choice| el_choices.iter().map(move |el_choice| (me_choice, el_choice))) // Yields all choice combinations
+            .map(|(me_choice, el_choice)| from.apply_choices(me_choice.clone(), el_choice.clone())) // Turn those choices into a state
+            .collect::<Vec<_>>()
+        };
+
+
+        // println!("Combinations: ");
+        // for child in &children {
+        //     println!("  {child:?}");
+        // }
+
+        let score = children.iter().map(|state| self.find_best_2(&state, cache)).max().unwrap();
+        cache.insert(from.clone(), score);
+        score
     }
 
     fn consolidate_zero_rate_valves(&mut self) {
@@ -172,13 +257,22 @@ impl State {
 struct State2 {
     me_at: String,
     elephant_at: String,
-    me_travel: u8,
-    elephant_travel: u8,
+    me_travel: u32,
+    elephant_travel: u32,
 
     time_left: u32,
     score: u32,
     active_ids: Vec<String>,
 }
+
+#[derive(Clone, Debug)]
+enum Choice {
+    Activate(String, u32),
+    Move(Path),
+    DoNothing,
+}
+
+type Path = (String, u32);
 
 impl State2 {
     // TODO, I'm thinking we should have something like this
@@ -193,6 +287,74 @@ impl State2 {
     // Then the search can separately enumerate the options 'me' has and the elephant has, and call this with every
     // combination
     // Neat! but I can't look at this any more right now
+
+    fn apply_choices(&self, me_choice: Choice, elephant_choice: Choice) -> State2 {
+        self.apply_me_choice(me_choice)
+            .apply_elephant_choice(elephant_choice)
+            .apply_time_step()
+    }
+
+    fn apply_me_choice(&self, choice: Choice) -> State2 {
+        match choice {
+            Choice::Activate(valve, rate) => {
+                let mut active_ids = self.active_ids.clone();
+                active_ids.push(valve);
+                State2 {
+                    active_ids,
+                    score: self.score + (rate * self.time_left),
+                    ..self.clone()
+                }
+            }
+            Choice::Move(path) => {
+                let me_at = path.0;
+                let me_travel = path.1;
+                State2 {
+                    me_at,
+                    me_travel,
+                    ..self.clone()
+                }
+            },
+            Choice::DoNothing => {
+                self.clone()
+            }
+        }
+    }
+
+    fn apply_elephant_choice(&self, choice: Choice) -> State2 {
+        match choice {
+            Choice::Activate(valve, rate) => {
+                let mut active_ids = self.active_ids.clone();
+                active_ids.push(valve);
+                State2 {
+                    active_ids,
+                    score: self.score + (rate * self.time_left),
+                    ..self.clone()
+                }
+            }
+            Choice::Move(path) => {
+                let elephant_at = path.0;
+                let elephant_travel = path.1;
+                State2 {
+                    elephant_at,
+                    elephant_travel,
+                    ..self.clone()
+                }
+            },
+            Choice::DoNothing => {
+                self.clone()
+            }
+        }
+    }
+
+    fn apply_time_step(&self) -> State2 {
+        State2 {
+            time_left: self.time_left - 1,
+            me_travel: self.me_travel.saturating_sub(1),
+            elephant_travel: self.elephant_travel.saturating_sub(1),
+            ..self.clone()
+        }
+    }
+
     #[allow(dead_code)]
     fn activate(&self, to_activate_1: &str, to_activate_2: &str, value_1: u32, value_2: u32) -> State2 {
         // if someone is traveling, update their travel time
@@ -225,8 +387,8 @@ impl State2 {
         let elephant_at = if !elephant_path.0.is_empty() { elephant_path.0.clone() } else { self.elephant_at.clone() };
 
         // This is weird - Its the travel time left AFTER we spend the one time step implicit in the state transition
-        let me_travel = me_path.1.saturating_sub(1) as u8;
-        let elephant_travel = elephant_path.1.saturating_sub(1) as u8;
+        let me_travel = me_path.1.saturating_sub(1) as u32;
+        let elephant_travel = elephant_path.1.saturating_sub(1) as u32;
         State2 {
             me_at,
             elephant_at,

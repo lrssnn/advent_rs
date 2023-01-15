@@ -45,8 +45,7 @@ fn main() {
     }
 }
 
-fn test(full: bool)
-{
+fn test(full: bool) {
     let construction_start = Instant::now();
     let days: Vec<Box<dyn DayTrait>> = if full {
         vec! [
@@ -77,7 +76,7 @@ fn test(full: bool)
     ]
     } else {
         vec![
-            Box::new(Day24::new()),
+            Box::new(Day16::new()),
         ]
     };
 
