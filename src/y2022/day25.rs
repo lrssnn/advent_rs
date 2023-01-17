@@ -13,7 +13,7 @@ impl Day25 {
         let input = include_str!("input25");
         //let input = include_str!("input25_example");
 
-        let numbers = input.lines().map(|l| Ib5::from_str(l)).collect::<Vec<_>>();
+        let numbers = input.lines().map(Ib5::from_str).collect::<Vec<_>>();
 
         Day25 { numbers }
     }
@@ -21,16 +21,16 @@ impl Day25 {
 
 impl Day for Day25 {
     fn day_name(&self) -> String { String::from("25") }
-    fn answer1(&self) -> String { String::from("?") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer1(&self) -> String { String::from("122-12==0-01=00-0=02") }
+    fn answer2(&self) -> String { String::from("free :)") }
 
     fn part1(&mut self) -> String {
         let sum = self.numbers.iter().map(|n| n.value()).sum::<i64>();
-        Ib5::from_int(sum as i64).to_string()
+        Ib5::from_int(sum).to_string()
     }
 
     fn part2(&mut self) -> String {
-        "unsolved".to_string()
+        "free :)".to_string()
     }
 }
 
@@ -40,7 +40,7 @@ struct Ib5 {
 
 impl Ib5 {
     fn from_str(input: &str) -> Ib5 {
-        let digits = input.chars().map(|c| Digit::from_char(c)).collect::<Vec<_>>();
+        let digits = input.chars().map(Digit::from_char).collect::<Vec<_>>();
         Ib5 { digits, }
     }
 
@@ -51,16 +51,15 @@ impl Ib5 {
         
         // now start at 5^digits, and start taking chunks out of the original total.
         // We may go negative, so beware!
-        let mut remaining = input as i64;
+        let mut remaining = input;
         for digit in 0..digits {
-            let place_value = 5_i64.pow((digits - digit - 1) as u32);
+            let place_value = 5_i64.pow(digits - digit - 1);
             // max_remaining is the biggest number we can represent with the digits after this one
-            let max_remaining = Ib5::max_value(digits-digit-1) as i64;
+            let max_remaining = Ib5::max_value(digits-digit-1);
 
             // How much do we need to remove from this value, to make 'remaining' acheivable?
             let this_digit = remaining - max_remaining;
 
-            println!("{remaining} remaining. Looking at digit {digit} ({}), place_value: {place_value}, max_remaining: {max_remaining}, this: {this_digit}", digits - digit);
             // Figure out which digit to assign;
             if this_digit > place_value { 
                 result.push(Digit::Two); 
@@ -70,7 +69,7 @@ impl Ib5 {
                 result.push(Digit::One); 
                 remaining -= place_value;
             }
-            else if this_digit > -1 * place_value { 
+            else if this_digit > -place_value { 
                 result.push(Digit::Zero); 
             }
             else if this_digit > -2 * place_value {
@@ -87,13 +86,13 @@ impl Ib5 {
     }
 
     fn value(&self) -> i64 {
-        let places = self.digits.len() as i64 - 1;
+        let places = self.digits.len() - 1;
         self.digits.iter().enumerate()
-            .map(|(place, d)| d.value_placed(places-place as i64))
+            .map(|(place, d)| d.value_placed((places-place) as u32))
             .sum()
     }
 
-    fn digits_needed(input: i64) -> i64 {
+    fn digits_needed(input: i64) -> u32 {
         let mut digits = 1;
         let mut maximum = 2; // 2x5^0
 
@@ -105,12 +104,12 @@ impl Ib5 {
             digits += 1;
         }
 
-        digits as i64
+        digits
     }
 
-    fn max_value(digit: i64) -> i64 {
+    fn max_value(digit: u32) -> i64 {
         // Geometric series
-        (2*(1 - 5_i64.pow(digit as u32))/-4) as i64
+        2*(1 - 5_i64.pow(digit))/-4
     }
 }
 
@@ -140,8 +139,8 @@ impl Digit {
         }
     }
 
-    fn value_placed(&self, place: i64) -> i64 {
-        self.value() as i64 * 5_i64.pow(place as u32)
+    fn value_placed(&self, place: u32) -> i64 {
+        self.value() as i64 * 5_i64.pow(place)
     }
 }
 
