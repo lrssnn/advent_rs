@@ -43,10 +43,12 @@ impl Day for Day24 {
     fn answer2(&self) -> String { String::from("?") }
 
     fn part1(&mut self) -> String {
+        return "".to_string();
         println!("{}x{}", WIDTH, HEIGHT);
         println!("target = {TARGET}");
         let initial = State{ player: Coord::new(1, 0), blizzards: self.blizzards.clone() };
-        initial.find_path().expect("Didn't Find Any Path!").to_string()
+        //initial.find_path().expect("Didn't Find Any Path!").to_string()
+        initial.find_path_2().to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -54,6 +56,7 @@ impl Day for Day24 {
     }
 }
 
+#[derive(Clone, PartialEq)]
 struct State {
     blizzards: Vec<Blizzard>,
     player: Coord,
@@ -101,12 +104,26 @@ impl State {
         }
     }
 
+    fn find_path_2(&self) -> usize {
+        let mut to_check: Vec<(State, usize)> = vec![(self.clone(), 0)];
+        while let Some((checking, dist)) = to_check.pop() {
+            if checking.player == TARGET { return dist + 1; } // The target is the cell above the exit, we need to take 1 more step
+            let next_states = checking.next_states();
+            let with_distance = next_states.into_iter().map(|state| (state, dist + 1));
+            to_check.extend(with_distance);
+            to_check.dedup_by_key(|e| e.0.clone());
+            println!("{} states to check", to_check.len());
+        }
+
+        panic!("Didn't find a path!");
+    }
+
     fn can_wait(&self, next_blizzards: &[Blizzard]) -> bool {
         next_blizzards.iter().all(|blizz| blizz.loc != self.player)
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Direction {
     Up, Down, Left, Right,
 }
@@ -144,7 +161,7 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Blizzard {
     loc: Coord,
     btype: Direction,

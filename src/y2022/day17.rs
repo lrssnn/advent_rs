@@ -38,6 +38,7 @@ impl Day for Day17 {
     }
 
     fn part2(&mut self) -> String {
+        return "".to_string();
         let mut game = Game::new(self.jets.clone());
 
         let mut seen_states: HashMap<State, (usize, usize)> = HashMap::new();

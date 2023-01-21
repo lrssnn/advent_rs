@@ -40,13 +40,13 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     for arg in &args {println!("'{arg}' {}", arg == "--full")};
     if args.iter().any(|arg| arg == "--full") {
-        test(true);
+        test(true, 1);
     } else {
-        test(false);
+        test(false, 10);
     }
 }
 
-fn test(full: bool) {
+fn test(full: bool, runs: u16) {
     let construction_start = Instant::now();
     let days: Vec<Box<dyn DayTrait>> = if full {
         vec! [
@@ -78,7 +78,7 @@ fn test(full: bool) {
     ]
     } else {
         vec![
-            Box::new(Day25::new()),
+            Box::new(Day19::new()),
         ]
     };
 
@@ -91,6 +91,7 @@ fn test(full: bool) {
     println!("+-----+---------------+---------------+");
     let mut total_millis = Duration::from_secs(0);
     for mut day in days {
+        for _run in 0..runs {
         print!("|  {} |", day.day_name());
         std::io::stdout().flush().unwrap();
 
@@ -115,6 +116,7 @@ fn test(full: bool) {
         //}
 
         println!();
+        }
     }
     println!("+-----+---------------+---------------+");
     println!("  Total solve time {:.2} ms ({:.2} s)", (total_millis.as_micros() as f32 / 1000.0), (total_millis.as_millis() as f32 / 1000.0));

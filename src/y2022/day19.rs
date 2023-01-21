@@ -4,7 +4,7 @@ use rayon::prelude::{ParallelIterator, IntoParallelRefIterator, IndexedParallelI
 
 use super::super::day::Day;
 
-const MAX_STATES: usize = 4000000;
+const MAX_STATES: usize = 750000;
 
 pub struct Day19
 {
@@ -48,6 +48,10 @@ struct Blueprint {
     clay_bot_cost: Purchase,
     obsidian_bot_cost: Purchase,
     geode_bot_cost: Purchase,
+
+    max_ore_bots: u8,
+    max_clay_bots: u8,
+    max_obsidian_bots: u8,
 }
 
 impl Blueprint {
@@ -73,7 +77,14 @@ impl Blueprint {
         let obsidian_bot_cost = Purchase::new(PurchaseType::Obsidian, obsidian_ore, obsidian_clay, 0);
         let geode_bot_cost = Purchase::new(PurchaseType::Geode, geode_ore, 0, geode_obsidian);
 
-        Blueprint { id: id.parse::<usize>().unwrap(), ore_bot_cost, clay_bot_cost, obsidian_bot_cost, geode_bot_cost }
+        // Once we have enough of a resource to make any purchase of that resource every turn, there is no point
+        // buying any more. This is used in should_buy
+        // Code formatting crimes?
+        let max_ore_bots = ore_bot_cost.ore_cost.max(clay_bot_cost.ore_cost.max(obsidian_bot_cost.ore_cost.max(geode_bot_cost.ore_cost)));
+        let max_clay_bots = ore_bot_cost.clay_cost.max(clay_bot_cost.clay_cost.max(obsidian_bot_cost.clay_cost.max(geode_bot_cost.clay_cost)));
+        let max_obsidian_bots = ore_bot_cost.obsidian_cost.max(clay_bot_cost.obsidian_cost.max(obsidian_bot_cost.obsidian_cost.max(geode_bot_cost.obsidian_cost)));
+
+        Blueprint { id: id.parse::<usize>().unwrap(), ore_bot_cost, clay_bot_cost, obsidian_bot_cost, geode_bot_cost, max_ore_bots, max_clay_bots, max_obsidian_bots }
     }
 
     fn evaluate(&self) -> usize {
@@ -89,10 +100,12 @@ impl Blueprint {
 
         for _step in 0..steps {
             states = states.iter().flat_map(|state| state.step(self)).collect();
-            states.dedup();
-            states.sort_by_key(|state| state.heuristic());
-            states.reverse();
-            states.truncate(MAX_STATES);
+            if states.len() > MAX_STATES * 2 {
+                states.dedup();
+                states.sort_by_key(|state| state.heuristic());
+                states.reverse();
+                states.truncate(MAX_STATES);
+            }
         }
 
         states.iter().max_by_key(|state| state.geode).unwrap().geode as usize
@@ -121,21 +134,23 @@ impl State {
     }
 
     fn step(&self, bp: &Blueprint) -> Vec<State> {
-        // Optimisation: There are insights to be had here about the value of making purchases once we have enough bots 
-        // to buy a geode bot every turn.
+        if self.can_buy_geode_every_turn(bp) {
+            return vec![self.construct_bot(&bp.geode_bot_cost)];
+        }
+
         let mut result = Vec::with_capacity(5);
         result.push(self.construct_bot(&Purchase::nothing()));
 
         if self.can_afford(&bp.geode_bot_cost) { 
             result.push(self.construct_bot(&bp.geode_bot_cost));
         }
-        if self.can_afford(&bp.obsidian_bot_cost) { 
+        if self.should_buy(PurchaseType::Obsidian, bp) && self.can_afford(&bp.obsidian_bot_cost) { 
             result.push(self.construct_bot(&bp.obsidian_bot_cost));
         }
-        if self.can_afford(&bp.clay_bot_cost) { 
+        if self.should_buy(PurchaseType::Clay, bp) && self.can_afford(&bp.clay_bot_cost) { 
             result.push(self.construct_bot(&bp.clay_bot_cost));
         }
-        if self.can_afford(&bp.ore_bot_cost) { 
+        if self.should_buy(PurchaseType::Ore, bp) && self.can_afford(&bp.ore_bot_cost) { 
             result.push(self.construct_bot(&bp.ore_bot_cost));
         }
 
@@ -169,6 +184,25 @@ impl State {
         self.obsidian_bots as usize * 4 + 
         self.geode_bots as usize * 8 + 
         self.geode as usize * 16
+    }
+
+    fn should_buy(&self, resource: PurchaseType, bp: &Blueprint) -> bool {
+        match resource {
+            PurchaseType::Ore => {
+                self.ore_bots < bp.max_ore_bots
+            },
+            PurchaseType::Clay => {
+                self.clay_bots < bp.max_clay_bots
+            }
+            PurchaseType::Obsidian => {
+                self.obsidian_bots < bp.max_obsidian_bots
+            }
+            _ => panic!("Don't call this with {resource:?}"),
+        }
+    }
+
+    fn can_buy_geode_every_turn(&self, bp: &Blueprint) -> bool {
+        self.ore_bots >= bp.geode_bot_cost.ore_cost && self.obsidian_bots >= bp.geode_bot_cost.obsidian_cost
     }
 }
 

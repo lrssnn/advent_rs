@@ -43,6 +43,7 @@ impl Day for Day16 {
     }
 
     fn part2(&mut self) -> String {
+        return "".to_string();
         let initial_state = State2 {
             me_at: "AA".to_string(),
             elephant_at: "AA".to_string(),
