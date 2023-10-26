@@ -38,11 +38,10 @@ use crate::day::Day as DayTrait;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    for arg in &args {println!("'{arg}' {}", arg == "--full")};
     if args.iter().any(|arg| arg == "--full") {
         test(true, 1);
     } else {
-        test(false, 10);
+        test(false, 1);
     }
 }
 
@@ -65,7 +64,7 @@ fn test(full: bool, runs: u16) {
         Box::new(Day13::new()),
         Box::new(Day14::new()),
         Box::new(Day15::new()),
-        Box::new(Day16::new()),
+        //Box::new(Day16::new()),
         Box::new(Day17::new()),
         Box::new(Day18::new()),
         Box::new(Day19::new()),
@@ -78,7 +77,7 @@ fn test(full: bool, runs: u16) {
     ]
     } else {
         vec![
-            Box::new(Day19::new()),
+            Box::new(Day16::new()),
         ]
     };
 

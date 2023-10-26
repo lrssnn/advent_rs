@@ -39,11 +39,14 @@ impl Day for Day16 {
 
         self.consolidate_zero_rate_valves();
 
-        self.find_best(&initial_state, &mut HashMap::new()).to_string()
+
+        let best = self.find_best(&initial_state, &mut HashMap::new()).to_string();
+        println!("{best}");
+        best
     }
 
     fn part2(&mut self) -> String {
-        return "".to_string();
+        //return "".to_string();
         let initial_state = State2 {
             me_at: "AA".to_string(),
             elephant_at: "AA".to_string(),
@@ -184,6 +187,7 @@ impl Day16 {
             .collect::<Vec<_>>()
         };
 
+        //println!("Generated {} possible children states", me_choices.len());
 
         // println!("Combinations: ");
         // for child in &children {
