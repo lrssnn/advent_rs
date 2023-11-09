@@ -8,31 +8,10 @@ use std::io::Write;
 use std::time::Instant;
 use std::time::Duration;
 
-use y2022::day1::*;
-use y2022::day2::*;
-use y2022::day3::*;
-use y2022::day4::*;
-use y2022::day5::*;
-use y2022::day6::*;
-use y2022::day7::*;
-use y2022::day8::*;
-use y2022::day9::*;
-use y2022::day10::*;
-use y2022::day11::*;
-use y2022::day12::*;
-use y2022::day13::*;
-use y2022::day14::*;
-use y2022::day15::*;
-use y2022::day16::*;
-use y2022::day17::*;
-use y2022::day18::*;
-use y2022::day19::*;
-use y2022::day20::*;
-use y2022::day21::*;
-use y2022::day22::*;
-use y2022::day23::*;
-use y2022::day24::*;
-use y2022::day25::*;
+// This is disgusting
+#[allow(unused_imports)]
+use y2022::{day1::*, day2::*, day3::*, day4::*, day5::*, day6::*, day7::*, day8::*, day9::*, day10::*, day11::*, day12::*, day13::*, day14::*, 
+    day15::*, day16::*, day17::*, day18::*, day19::*, day20::*, day21::*, day22::*, day23::*, day24::*, day25::*};
 
 use crate::day::Day as DayTrait;
 
@@ -49,7 +28,7 @@ fn test(full: bool, runs: u16) {
     let construction_start = Instant::now();
     let days: Vec<Box<dyn DayTrait>> = if full {
         vec! [
-        Box::new(Day1::new()),
+        //Box::new(Day1::new()),
         Box::new(Day2::new()),
         Box::new(Day3::new()),
         Box::new(Day4::new()),
@@ -77,7 +56,7 @@ fn test(full: bool, runs: u16) {
     ]
     } else {
         vec![
-            Box::new(Day16::new()),
+            Box::new(Day17::new()),
         ]
     };
 

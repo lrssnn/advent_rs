@@ -2,11 +2,10 @@
 
 use super::super::day::Day;
 
-const GAME_SIZE_LIMIT: usize = 40; // This is tuned based on feels and vibes. The smaller the faster, too small and you will change the result
-
 pub struct Day17
 {
     jets: Vec<Jet>,
+    chamber: Chamber,
 }
 
 impl Day17 {
@@ -18,45 +17,124 @@ impl Day17 {
         let jets = input.chars()
             .map(Jet::from_char).collect::<Vec<_>>();
 
-        Day17 { jets }
+        let chamber = Chamber::new(input.chars().collect());
+
+        Day17 { jets, chamber }
     }
 }
 
 impl Day for Day17 {
     fn day_name(&self) -> String { String::from("17") }
     fn answer1(&self) -> String { String::from("3085") }
+    //fn answer1(&self) -> String { String::from("3068") } // Example
+    //fn answer2(&self) -> String { String::from("1514285714288") } // Example
     fn answer2(&self) -> String { String::from("?") }
 
     fn part1(&mut self) -> String {
-        let mut game = Game::new(self.jets.clone());
+        let mut part1 = self.chamber.clone();
 
-        for _turn in 1..=2022 {
-            game.run_rock();
+        for _ in 0..2022 {
+            part1.drop_one();
         }
 
-        game.height().to_string()
+        return part1.height().to_string();
+        // let mut game = Game::new(self.jets.clone());
+
+        // for _turn in 1..=2022 {
+        //     game.run_rock();
+        // }
+
+        // game.height().to_string()
     }
 
     fn part2(&mut self) -> String {
-        return "".to_string();
+let mut part2 = self.chamber.clone();
+
+        // state will be: current piece number, current jet index, top 4 rows of chamber
+        // if we get a repeat, then we found a cycle
+        //      -- delta_height: height from previous cycle to this one
+        //      -- delta_drops: how many drops were needed to get to delta_height
+        //      -- offset_height: how high the tower was when the cycle began for the first time
+        //      -- offset_drops: how many drops it took to get to offset_height
+
+        let mut cycle_finder = HashMap::new();
+
+        // map state to (height, drops)
+        cycle_finder.insert((part2.piecenum, part2.jetnum, 0usize), (0usize, 0usize));
+
+        let mut drops = 0;
+        loop {
+            part2.drop_one();
+            drops += 1;
+            let height = part2.height();
+            if height < 4 {
+                continue;
+            }
+
+            let shape = ((part2.rocks[height - 1] as usize) << 24)
+                | ((part2.rocks[height - 2] as usize) << 16)
+                | ((part2.rocks[height - 3] as usize) << 8)
+                | (part2.rocks[height - 4] as usize);
+
+            if let Some(entry) = cycle_finder.get(&(part2.piecenum, part2.jetnum, shape)) {
+                // println!("piece = {}", part2.piecenum);
+                // println!("jetnum = {}", part2.jetnum);
+                // println!("shape = {}", shape);
+
+                // println!("drops until start of loop = {}", entry.1);
+                // println!("height of tower when the loop started = {}", entry.0);
+                let delta_height = height - entry.0;
+                let delta_drops = drops - entry.1;
+                // println!(
+                // "There is an increase of {delta_height} rows for every {delta_drops} drops"
+                // );
+                let remaining_drops = Chamber::OUCH - entry.1;
+                // println!("There are still {remaining_drops} left to go");
+
+                let needed_drops = remaining_drops / delta_drops;
+                let leftover_drops = remaining_drops % delta_drops;
+                let integral_height = entry.0 + delta_height * needed_drops;
+
+                // println!(
+                // "The height will reach {integral_height} but there are still {leftover_drops} drops left"
+                // );
+
+                for _ in 0..leftover_drops {
+                    part2.drop_one();
+                }
+                let leftover_height = part2.height() - height;
+                // println!("After {leftover_drops} more drops, we added {leftover_height} rows");
+
+                return (integral_height + leftover_height).to_string();
+            } else {
+                cycle_finder.insert((part2.piecenum, part2.jetnum, shape), (height, drops));
+            }
+        }
+    }
+        /*
         let mut game = Game::new(self.jets.clone());
 
         let mut seen_states: HashMap<State, (usize, usize)> = HashMap::new();
 
         const TURNS_TARGET: usize = 1_000_000_000_000;
 
-        for turn in 1..=TURNS_TARGET {
-
+        let mut turn = 0;
+        loop {
             game.run_rock();
+            turn += 1;
+            let height = game.height();
+            if height < 4 {
+                continue;
+            }
 
             let state = game.get_state();
-            if let Some((turns_processed_last_seen, size_last_seen)) = seen_states.get(&state) {
-                let cycle_turns = turn - turns_processed_last_seen;
-                let cycle_growth = game.height() - size_last_seen;
+            if let Some((turn_last_seen, height_last_seen)) = seen_states.get(&state) {
+                let cycle_turns = turn - turn_last_seen;
+                let cycle_height = height - height_last_seen;
 
-                println!("The turn is {turn}, last saw it at {turns_processed_last_seen} ({cycle_turns} turns ago)");
+                println!("The turn is {turn}, last saw it at {turn_last_seen} ({cycle_turns} turns ago)");
 
-                let remaining_turns = TURNS_TARGET - turn;
+                let remaining_turns = TURNS_TARGET - turn_last_seen;
 
                 let needed_cycles = remaining_turns / cycle_turns;
 
@@ -64,30 +142,30 @@ impl Day for Day17 {
 
                 println!("{remainder_turns} left over");
 
-                let skipped_growth = cycle_growth * needed_cycles;
+                let skipped_growth = cycle_height * needed_cycles;
 
-                println!("Grew {cycle_growth} in those turns {}: total growth", skipped_growth);
+                println!("Grew {cycle_height} per cycle: {} total growth", skipped_growth);
 
                 println!("Processing {remainder_turns} remaining turns");
-                let height_before = game.height();
                 for _turn in 0..remainder_turns {
                     game.run_rock();
                 }
 
-                let grew = game.height() - height_before;
+                let leftover_height = game.height();// - height;
 
-                let answer = game.height() + skipped_growth;
-                println!("Correct?: {}", answer == 1514285714288);
+                let answer = height_last_seen + skipped_growth + leftover_height;
+
+                println!("example correct?: {}", answer == 1514285714288);
+                println!("larger than known too small (real)?: {}", answer > 1514534883741);
+                println!("equals known too small (real)?: {}", answer == 1514534883741);
+                println!("equals known bad (real)?: {}", answer == 1514534883742);
                 return answer.to_string();
             } else {
-                seen_states.insert(state, (turn, game.height()));
+                seen_states.insert(state, (turn, height));
             }
         }
-
-        println!("I doubt it!");
-        let ans2 = game.height();
-        ans2.to_string()
     }
+    */
 }
 
 impl Day17 {
@@ -96,271 +174,152 @@ impl Day17 {
 // For detecting cycles
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct State { 
-    spawn_counter: u8,
+    spawn_counter: usize,
     jet_counter: usize,
-    rows_top: [[Cell; 7]; 5],
+    rows_top: [u8; 4],
 }
 
 struct Game {
-    rows: Vec<[Cell; 7]>,
-    spawn_counter: u8,
+    rows: Vec<u8>,
+    spawn_counter: usize,
     jets: Vec<Jet>,
     jet_counter: usize,
-    dead_rows: usize,
 }
 
 impl Game {
+    const PIECES: [[u8; 4]; 5] = [
+        [0b0000000, 0b0000000, 0b0000000, 0b0011110], // Horizontal
+        [0b0000000, 0b0001000, 0b0011100, 0b0001000], // Plus
+        [0b0000000, 0b0000100, 0b0000100, 0b0011100], // Corner
+        [0b0010000, 0b0010000, 0b0010000, 0b0010000], // Vertical
+        [0b0000000, 0b0000000, 0b0011000, 0b0011000], // Square
+    ];
+
     fn new(jets: Vec<Jet>) -> Game {
-        Game { rows: Vec::new(), spawn_counter: 0, jets, jet_counter: 0, dead_rows: 0}
+        Game { rows: vec![0, 0, 0, 0, 0, 0 ,0], spawn_counter: 0, jets, jet_counter: 0 }
     }
 
     fn height(&self) -> usize {
-        self.rows.len() + self.dead_rows
+        // Make sure we aren't counting empty rows
+        let mut height = self.rows.len();
+        while height > 0 && self.rows[height - 1] == 0 {
+            height -= 1;
+        }
+        height
     }
 
     fn run_rock(&mut self) {
-        self.spawn();
-        //println!("After spawn: ");
-        //println!("{self}");
-
-        let mut done = false;
-        while !done {
-            done = self.tick();
-            //println!("After Tick: ");
-            //println!("{self}");
-        }
-
-        // Remove any completely empty lines
-        self.rows.reverse();
-        while let Some(first) = self.rows.pop() {
-            if !first.iter().all(|&c| c == Cell::Empty) {
-                self.rows.push(first);
-                break;
-            }
-        }
-        self.rows.reverse();
-        //println!("After Truncate: ");
-        //println!("{self}");
-
-        // Chop rows off the bottom, we can assume that beyond a certain point, the rows are static
-        if self.rows.len() > GAME_SIZE_LIMIT {
-            let dead_rows = self.rows.len() - GAME_SIZE_LIMIT;
-            self.rows.truncate(GAME_SIZE_LIMIT);
-            self.dead_rows += dead_rows;
-        }
-    }
-
-    fn spawn(&mut self) {
-        let shape_rows = Cell::get_shape(self.spawn_counter);
+        let mut piece = Self::PIECES[self.spawn_counter];
         self.spawn_counter = (self.spawn_counter + 1) % 5;
 
-        // let's assume that we truncate empty rows before spawning
-        // So to spawn we just need to pop these rows on the top of the board
-        // with the 3 empty rows
-        self.rows.reverse();
-        self.rows.push([Cell::Empty; 7]);
-        self.rows.push([Cell::Empty; 7]);
-        self.rows.push([Cell::Empty; 7]);
-        for row in shape_rows.iter().rev() {
-            self.rows.push(*row);
-        }
-        self.rows.reverse();
-    }
-
-    fn tick(&mut self) -> bool {
-        self.apply_jet();
-
-        if self.should_rest() {
-            self.rest();
-            true
-        } else {
-            self.apply_gravity();
-            false
-        }
-    }
-
-    fn apply_jet(&mut self) {
-        let jet = &self.jets[self.jet_counter];
-        self.jet_counter = (self.jet_counter + 1) % self.jets.len();
-
-        match jet {
-            Jet::Left => self.apply_jet_left(),
-            Jet::Right => self.apply_jet_right(),
-        }
-        //println!("{self}");
-    }
-
-    fn apply_jet_left(&mut self) {
-        // if any cells cannot move left, do not apply the jet
-        for row in &self.rows {
-            for i in 0..7 {
-                let cell = row[i];
-                if cell == Cell::Active && ( i == 0 || row[i - 1] == Cell::Still ) {
-                    //println!("Not applying a jet left...");
-                    return;
-                }
-            }
+        // Make room at the top for the new piece
+        let mut last = self.rows.len() - 7; // Need to have 7 empty spaces
+        while self.rows[last] != 0 {
+            self.rows.push(0);
+            last += 1;
         }
 
-        // Shift every active cell 1 to the left
-        //println!("Applying a jet left...");
-        for row in &mut self.rows {
-            for i in 1..7 {
-                if row[i] == Cell::Active {
-                    row[i - 1] = Cell::Active;
-                    row[i] = Cell::Empty;
-                }
-            }
-        }
-    }
+        let mut bottom = self.rows.len() - 4;
 
-    fn apply_jet_right(&mut self) {
-        // if any cells cannot move right, do not apply the jet
-        for row in &self.rows {
-            for i in 0..7 {
-                let cell = row[i];
-                if cell == Cell::Active {
-                    // Check for still, because the active rocks don't matter
-                    if i == 6 || row[i + 1] == Cell::Still {
-                        //println!("Not applying a jet right...");
-                        return;
+        // Move and drop until we can't anymore
+        loop {
+            let jet = self.jets[self.jet_counter];
+            self.jet_counter = (self.jet_counter + 1) % self.jets.len();
+
+            match jet {
+                Jet::Left => {
+                    if self.can_go_left(bottom, &piece) {
+                        for p in piece.iter_mut() { *p  <<= 1; }
+                    }
+                },
+                Jet::Right => {
+                    if self.can_go_right(bottom, &piece) {
+                        for p in piece.iter_mut() { *p  >>= 1; }
                     }
                 }
             }
+
+            if bottom > 0 && self.can_go_to(bottom - 1, &piece) {
+                bottom -= 1;
+            } else {
+                break; // Time to commit the piece and move on
+            }
         }
 
-        // Shift every active cell 1 to the right
-        //println!("Applying jet right...");
-        for row in &mut self.rows {
-            for i in (0..6).rev() {
-                if row[i] == Cell::Active {
-                    row[i + 1] = Cell::Active;
-                    row[i] = Cell::Empty;
-                }
-            }
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            self.rows[bottom] |= piece[prow];
+            bottom += 1;
         }
     }
 
-    fn apply_gravity(&mut self) {
-        for row_i in (0..(self.rows.len() - 1)).rev(){
-            for col_i in 0..7 {
-                let cell = self.rows[row_i][col_i];
-                if cell == Cell::Active {
-                    self.rows[row_i + 1][col_i] = Cell::Active;
-                    self.rows[row_i][col_i] = Cell::Empty;
-                }
+     fn can_go_left(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (piece[prow] & 0x40) != 0 || (self.rows[bottom] & (piece[prow] << 1)) != 0 {
+                return false;
             }
+            bottom += 1;
         }
+        true
     }
 
-    fn should_rest(&self) -> bool {
-        let rows = self.rows.len();
-        for row_i in (0..rows).rev(){
-            for col_i in 0..7 {
-                let cell = self.rows[row_i][col_i];
-                if cell == Cell::Active && (row_i == rows - 1 || self.rows[row_i + 1][col_i] == Cell::Still) {
-                    //println!("Rock Should rest because of {row_i},{col_i}");
-                    return true;
-                }
+    fn can_go_right(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (piece[prow] & 0x01) != 0 || (self.rows[bottom] & (piece[prow] >> 1)) != 0 {
+                return false;
             }
+            bottom += 1;
         }
+        true
+    }
+
+    fn can_go_to(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (self.rows[bottom] & piece[prow]) != 0 {
+                return false;
+            }
+            bottom += 1;
+        }
+        true
+    }
+    fn spawn(&mut self) {
+    }
+
+    fn tick(&mut self) -> bool {
         false
     }
 
-    fn rest(&mut self) {
-        for row_i in 0..self.rows.len(){
-            for col_i in 0..7 {
-                let cell = self.rows[row_i][col_i];
-                if cell == Cell::Active {
-                    self.rows[row_i][col_i] = Cell::Still;
-                }
-            }
-        }
+    fn apply_jet(&mut self) {
+    }
+
+    fn apply_jet_left(&mut self) {
+    }
+
+    fn apply_jet_right(&mut self) {
+    }
+
+    fn apply_gravity(&mut self) {
     }
 
     fn get_state(&self) -> State {
+        let height = self.height();
         State {
             spawn_counter: self.spawn_counter,
             jet_counter: self.jet_counter,
             rows_top: [
-                *self.rows.get(0).unwrap_or(&[Cell::Empty; 7]), 
-                *self.rows.get(1).unwrap_or(&[Cell::Empty; 7]), 
-                *self.rows.get(2).unwrap_or(&[Cell::Empty; 7]), 
-                *self.rows.get(3).unwrap_or(&[Cell::Empty; 7]), 
-                *self.rows.get(4).unwrap_or(&[Cell::Empty; 7]), 
+                self.rows[height - 1],
+                self.rows[height - 2],
+                self.rows[height - 3],
+                self.rows[height - 4],
             ],
         }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-enum Cell {
-    Empty,
-    Active,
-    Still
-}
-
-impl Cell {
-    fn get_shape(shape_id: u8) -> Vec<[Cell; 7]> {
-        match shape_id {
-            0 => Cell::shape_horizontal(),
-            1 => Cell::shape_plus(),
-            2 => Cell::shape_corner(),
-            3 => Cell::shape_vertical(),
-            4 => Cell::shape_square(),
-            _ => panic!("Invalid spawn counter"),
-        }
-    }
-
-    fn shape_horizontal() -> Vec<[Cell; 7]> {
-        // ..@@@@.
-        vec![
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Active, Cell::Active, Cell::Active, Cell::Empty]
-        ]
-    }
-
-    fn shape_plus() -> Vec<[Cell; 7]> {
-        // ...@...
-        // ..@@@..
-        // ...@...
-        vec![
-            [Cell::Empty, Cell::Empty, Cell::Empty,  Cell::Active, Cell::Empty,  Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Active, Cell::Active, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Empty,  Cell::Active, Cell::Empty,  Cell::Empty, Cell::Empty],
-        ]
-    }
-
-    fn shape_corner() -> Vec<[Cell; 7]> {
-        // ....@..
-        // ....@..
-        // ..@@@..
-        vec![
-            [Cell::Empty, Cell::Empty, Cell::Empty,  Cell::Empty,  Cell::Active, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Empty,  Cell::Empty,  Cell::Active, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Active, Cell::Active, Cell::Empty, Cell::Empty],
-        ]
-    }
-
-    fn shape_vertical() -> Vec<[Cell; 7]> {
-        // ..@....
-        // ..@....
-        // ..@....
-        // ..@....
-        vec![
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
-        ]
-    }
-
-    fn shape_square() -> Vec<[Cell; 7]> {
-        // ..@@...
-        // ..@@...
-        vec![
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty],
-            [Cell::Empty, Cell::Empty, Cell::Active, Cell::Active, Cell::Empty, Cell::Empty, Cell::Empty]
-        ]
     }
 }
 
@@ -389,6 +348,7 @@ impl Display for Jet {
     }
 }
 
+/*
 impl Display for Game {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in &self.rows {
@@ -402,13 +362,154 @@ impl Display for Game {
         Ok(())
     }
 }
+*/
+#[derive(Default, Clone)]
+struct Chamber {
+    jets: Vec<char>,
+    rocks: Vec<u8>,
+    piecenum: usize,
+    jetnum: usize,
+}
 
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Cell::Active => '@',
-            Cell::Still => '#',
-            Cell::Empty => '.',
-        })
+impl Chamber {
+    const PIECES: [[u8; 4]; 5] = [
+        [0b0000000, 0b0000000, 0b0000000, 0b0011110],
+        [0b0000000, 0b0001000, 0b0011100, 0b0001000],
+        [0b0000000, 0b0000100, 0b0000100, 0b0011100],
+        [0b0010000, 0b0010000, 0b0010000, 0b0010000],
+        [0b0000000, 0b0000000, 0b0011000, 0b0011000],
+    ];
+
+    const OUCH: usize = 1_000_000_000_000;
+
+    fn new(jets: Vec<char>) -> Self {
+        Self {
+            jets,
+            rocks: vec![0, 0, 0, 0, 0, 0, 0],
+            piecenum: 0,
+            jetnum: 0,
+        }
+    }
+
+    fn drop_one(&mut self) {
+        let mut piece = Self::PIECES[self.piecenum];
+        self.piecenum = (self.piecenum + 1) % Self::PIECES.len();
+
+        // make room at the top for the new piece
+        let mut last = self.rocks.len() - 7;
+        while self.rocks[last] != 0 {
+            self.rocks.push(0);
+            last += 1;
+        }
+
+        let mut bottom = self.rocks.len() - 4;
+
+        loop {
+            // start off by using the jet to move the piece left or right
+            let jet = self.jets[self.jetnum];
+            self.jetnum = (self.jetnum + 1) % self.jets.len();
+
+            match jet {
+                '<' => {
+                    if self.can_go_left(bottom, &piece) {
+                        for p in piece.iter_mut() {
+                            *p <<= 1;
+                        }
+                    }
+                }
+                '>' => {
+                    if self.can_go_right(bottom, &piece) {
+                        for p in piece.iter_mut() {
+                            *p >>= 1;
+                        }
+                    }
+                }
+                _ => panic!("bad input '{jet}'"),
+            }
+
+            // drop the piece by one if it can
+            if bottom > 0 && self.can_go_to(bottom - 1, &piece) {
+                bottom -= 1;
+            } else {
+                break;
+            }
+        }
+
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            self.rocks[bottom] |= piece[prow];
+            bottom += 1;
+        }
+    }
+
+    fn can_go_left(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (piece[prow] & 0x40) != 0 || (self.rocks[bottom] & (piece[prow] << 1)) != 0 {
+                return false;
+            }
+            bottom += 1;
+        }
+        true
+    }
+
+    fn can_go_right(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (piece[prow] & 0x01) != 0 || (self.rocks[bottom] & (piece[prow] >> 1)) != 0 {
+                return false;
+            }
+            bottom += 1;
+        }
+        true
+    }
+
+    fn can_go_to(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
+        let mut prow = 4;
+        while prow > 0 {
+            prow -= 1;
+            if (self.rocks[bottom] & piece[prow]) != 0 {
+                return false;
+            }
+            bottom += 1;
+        }
+        true
+    }
+
+    fn height(&self) -> usize {
+        let mut top = self.rocks.len();
+        while top > 0 && self.rocks[top - 1] == 0 {
+            top -= 1;
+        }
+        top
+    }
+
+    fn _print_piece(piece: &[u8; 4]) {
+        for p in piece {
+            Self::_print_row(*p);
+            println!();
+        }
+    }
+
+    fn _print_row(row: u8) {
+        let mut bit = 0x40;
+        while bit > 0 {
+            print!("{}", if (bit & row) != 0 { '#' } else { '.' });
+            bit >>= 1;
+        }
+    }
+
+    fn _draw(&self) {
+        let mut top = self.rocks.len();
+        while top > 0 {
+            top -= 1;
+            print!("|");
+            Self::_print_row(self.rocks[top]);
+            println!("|");
+        }
+        println!("+-------+");
     }
 }
