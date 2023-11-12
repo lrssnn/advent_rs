@@ -1,5 +1,6 @@
 ﻿use std::{fmt::Display, ops::Add, io, collections::{HashMap, HashSet}, time::Instant};
 use std::hash::{Hash, Hasher};
+use crate::search::*;
 
 use super::super::day::Day;
 
@@ -40,14 +41,14 @@ impl Day24 {
 
 impl Day for Day24 {
     fn day_name(&self) -> String { String::from("24") }
-    fn answer1(&self) -> String { String::from("?") }
+    fn answer1(&self) -> String { String::from("249") }
     fn answer2(&self) -> String { String::from("?") }
 
     fn part1(&mut self) -> String {
         println!("{}x{}", WIDTH, HEIGHT);
         println!("target = {TARGET}");
         let initial = State { player: Coord::new(1, 0), timestamp: 0 };
-        initial.find_path_2(self.blizzards.clone()).to_string()
+        State::find_path_3(self.blizzards.clone()).to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -102,9 +103,19 @@ impl State {
         }
     }
 
+    fn find_path_3(blizzards: Vec<Blizzard>) -> usize {
+        let mut blizzards = BlizzardContainer::new(blizzards);
+        let initial_state = State { player: Coord::new(1, 0), timestamp: 0 };
+        let shortest_path = astar_search(&initial_state, 
+            |s| (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize,
+            |s| s.next_states(&mut blizzards), 
+            |s| s.player == TARGET, 
+            usize::MAX
+        ).unwrap();
+        shortest_path.len()
+    }
 
     fn find_path_2(&self, initial_state: Vec<Blizzard>) -> usize {
-        return 0;
         let mut to_check: Vec<(State, usize)> = vec![(self.clone(), 0)];
         let mut best_to_coord = HashMap::<Coord, usize>::new();
         let mut best_answer = usize::MAX;
@@ -123,7 +134,6 @@ impl State {
             if best_to_coord.contains_key(&checking.player) {
                 duplicate_skips += 1;
             } else {
-                //seen.insert(checking.clone());
                 //println!("Checking \n{checking}");
                 if checking.player == TARGET { 
                     // println!("{checking}");
