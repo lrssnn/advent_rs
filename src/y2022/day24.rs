@@ -4,13 +4,13 @@ use crate::search::*;
 
 use super::super::day::Day;
 
-const HEIGHT: u8 = 35;
-const WIDTH: u8 = 100;
+//const HEIGHT: u8 = 35;
+//const WIDTH: u8 = 100;
+
+const HEIGHT: u8 = 4;
+const WIDTH: u8 = 6;
+
 const CYCLE: usize = HEIGHT as usize * WIDTH as usize;
-
-//const HEIGHT: u8 = 4;
-//const WIDTH: u8 = 6;
-
 const TARGET: Coord = Coord { x: WIDTH, y: HEIGHT}; // Target the cell above, the rules treat the actual target as a wall
 const START: Coord = Coord { x: 1, y: 0 };
 
@@ -23,7 +23,7 @@ impl Day24 {
     pub fn new() -> Day24
     {
         let input = include_str!("input24");
-        //let input = include_str!("input24_example");
+        let input = include_str!("input24_example");
 
         let mut blizzards = Vec::new();
 
@@ -48,17 +48,69 @@ impl Day for Day24 {
     fn part1(&mut self) -> String {
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
         let initial_state = State { player: START, timestamp: 0 };
+        let heuristic = | s: &State | (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize;
+        let get_next_states = | s: &State | s.next_states(&mut blizzards);
+        let is_desired_state = | s: &State | s.player == TARGET;
         let shortest_path = astar_search(&initial_state, 
-            |s| (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize,
-            |s| s.next_states(&mut blizzards), 
-            |s| s.player == TARGET, 
+            heuristic,
+            get_next_states, 
+            is_desired_state, 
             usize::MAX
         ).unwrap();
         shortest_path.len().to_string()
     }
 
     fn part2(&mut self) -> String {
-        "unsolved".to_string()
+        let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
+        let get_next_states = | s: &State | s.next_states(&mut blizzards);
+        let initial_state = State { player: START, timestamp: 0 };
+        let heuristic = | s: &State | {
+            let h = (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize;
+            println!("Heuristic for {} = {}", s.player, h);
+            h
+        };
+        let heuristic_reverse = | s: &State | {
+            let h = (s.player.x.abs_diff(1) + s.player.y) as usize;
+            println!("H reverse of {} = {}", s.player, h);
+            h
+        };
+        let is_end_state = | s: &State | s.player == TARGET;
+        let is_start_state = | s: &State | {
+            let winner = s.player == START;
+            println!("Is {} a winner? {winner}", s.player);
+            winner
+        };
+
+        let start_to_end = astar_search(&initial_state, 
+            heuristic,
+            get_next_states, 
+            is_end_state, 
+            usize::MAX
+        ).unwrap().len();
+
+        let end_state = State { player: TARGET, timestamp: start_to_end };
+        let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
+        let get_next_states = | s: &State | s.next_states(&mut blizzards);
+        let end_to_start = astar_search(&end_state, 
+            heuristic_reverse,
+            get_next_states, 
+            is_start_state, 
+            usize::MAX
+        ).unwrap().len();
+
+        let restart_state = State { player: START, timestamp: start_to_end + end_to_start };
+        let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
+        let get_next_states = | s: &State | s.next_states(&mut blizzards);
+        let start_to_end_2 = astar_search(&restart_state, 
+            heuristic,
+            get_next_states, 
+            is_end_state, 
+            usize::MAX
+        ).unwrap().len();
+
+        let total = start_to_end + end_to_start + start_to_end_2;
+        println!("{start_to_end} + {end_to_start} + {start_to_end_2} = {total}");
+        total.to_string()
     }
 }
 
@@ -88,11 +140,19 @@ impl State {
     fn next_states(&self, blizzards: &mut BlizzardContainer) -> Vec<State> {
         let ts = self.timestamp + 1;
         let next_blizzards = blizzards.get(ts);
-        let mut moves: Vec<_> = Direction::all().iter().filter_map(|dir| self.try_move(dir, &next_blizzards)).collect();
-        // if self.can_wait(&next_blizzards) {
-        //     moves.push(State { player: self.player, timestamp: ts });
-        // }
 
+        let moves: Vec<State> = Direction::all()
+            .iter()
+            .filter_map(|dir| self.try_move(dir, &next_blizzards))
+            .collect();
+
+        println!("From...\n");
+        self._print(blizzards);
+        println!("To...\n");
+        for s in &moves {
+            s._print(blizzards);
+            println!();
+        }
         moves
     }
 
@@ -106,10 +166,6 @@ impl State {
             None
         }
     }
-
-    // fn can_wait(&self, next_blizzards: &[Blizzard]) -> bool {
-    //     next_blizzards.iter().all(|blizz| blizz.loc != self.player)
-    // }
 
     fn _print(&self, blizzards: &mut BlizzardContainer) {
         println!("t =  {}", self.timestamp);
@@ -237,6 +293,7 @@ impl BlizzardContainer {
     fn get(&mut self, timestamp: usize) -> Vec<Blizzard> {
         let timestamp = timestamp % CYCLE;
         while timestamp >= self.blizzards.len() {
+            println!("Creating map for {}", self.blizzards.len());
             self.blizzards.push(Blizzard::next_blizzards(&self.blizzards[self.blizzards.len() - 1]));
         }
         self.blizzards[timestamp].clone()
