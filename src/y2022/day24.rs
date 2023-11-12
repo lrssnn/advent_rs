@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, ops::Add, io, collections::{HashMap, HashSet}, time::Instant};
+﻿use std::{fmt::Display, ops::Add };
 use std::hash::{Hash, Hasher};
 use crate::search::*;
 
@@ -12,6 +12,7 @@ const CYCLE: usize = HEIGHT as usize * WIDTH as usize;
 //const WIDTH: u8 = 6;
 
 const TARGET: Coord = Coord { x: WIDTH, y: HEIGHT}; // Target the cell above, the rules treat the actual target as a wall
+const START: Coord = Coord { x: 1, y: 0 };
 
 pub struct Day24
 {
@@ -45,10 +46,15 @@ impl Day for Day24 {
     fn answer2(&self) -> String { String::from("?") }
 
     fn part1(&mut self) -> String {
-        println!("{}x{}", WIDTH, HEIGHT);
-        println!("target = {TARGET}");
-        let initial = State { player: Coord::new(1, 0), timestamp: 0 };
-        State::find_path_3(self.blizzards.clone()).to_string()
+        let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
+        let initial_state = State { player: START, timestamp: 0 };
+        let shortest_path = astar_search(&initial_state, 
+            |s| (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize,
+            |s| s.next_states(&mut blizzards), 
+            |s| s.player == TARGET, 
+            usize::MAX
+        ).unwrap();
+        shortest_path.len().to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -56,7 +62,7 @@ impl Day for Day24 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq)]
 struct State {
     player: Coord,
     timestamp: usize,
@@ -78,23 +84,21 @@ impl PartialEq for State {
     }
 }
 
-impl Eq for State {}
-
 impl State {
     fn next_states(&self, blizzards: &mut BlizzardContainer) -> Vec<State> {
         let ts = self.timestamp + 1;
         let next_blizzards = blizzards.get(ts);
         let mut moves: Vec<_> = Direction::all().iter().filter_map(|dir| self.try_move(dir, &next_blizzards)).collect();
-        if self.can_wait(&next_blizzards) {
-            moves.push(State { player: self.player, timestamp: ts });
-        }
+        // if self.can_wait(&next_blizzards) {
+        //     moves.push(State { player: self.player, timestamp: ts });
+        // }
 
         moves
     }
 
     fn try_move(&self, dir: &Direction, blizzards: &[Blizzard]) -> Option<State> {
         let proposed = self.player + dir.offset();
-        if proposed.x == 0 || proposed.y == 0 || proposed.x == WIDTH + 1 || proposed.y == HEIGHT + 1 { return None; }
+        if proposed != START && (proposed.x == 0 || proposed.y == 0 || proposed.x == WIDTH + 1 || proposed.y == HEIGHT + 1) { return None; }
         if blizzards.iter().all(|blizz| blizz.loc != proposed) {
             let new_state = State { player: proposed, timestamp: self.timestamp + 1 };
             Some(new_state)
@@ -103,74 +107,11 @@ impl State {
         }
     }
 
-    fn find_path_3(blizzards: Vec<Blizzard>) -> usize {
-        let mut blizzards = BlizzardContainer::new(blizzards);
-        let initial_state = State { player: Coord::new(1, 0), timestamp: 0 };
-        let shortest_path = astar_search(&initial_state, 
-            |s| (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize,
-            |s| s.next_states(&mut blizzards), 
-            |s| s.player == TARGET, 
-            usize::MAX
-        ).unwrap();
-        shortest_path.len()
-    }
+    // fn can_wait(&self, next_blizzards: &[Blizzard]) -> bool {
+    //     next_blizzards.iter().all(|blizz| blizz.loc != self.player)
+    // }
 
-    fn find_path_2(&self, initial_state: Vec<Blizzard>) -> usize {
-        let mut to_check: Vec<(State, usize)> = vec![(self.clone(), 0)];
-        let mut best_to_coord = HashMap::<Coord, usize>::new();
-        let mut best_answer = usize::MAX;
-        let mut turns = 0;
-        let mut last_iteration = Instant::now();
-        let mut duplicate_skips = 0;
-        let mut distance_skips = 0;
-        let mut s = String::new();
-        let mut blizzards = BlizzardContainer::new(initial_state);
-        while let Some((checking, dist)) = to_check.pop() {
-            turns += 1;
-            let remaining_dist = ((TARGET.x - checking.player.x) + (TARGET.y - checking.player.y)) as usize;
-            if dist + remaining_dist >= best_answer {
-                distance_skips += 1;
-            } else 
-            if best_to_coord.contains_key(&checking.player) {
-                duplicate_skips += 1;
-            } else {
-                //println!("Checking \n{checking}");
-                if checking.player == TARGET { 
-                    // println!("{checking}");
-                    // println!("Press to continue...");
-                    // io::stdin().read_line(&mut s);
-                    best_answer = usize::min(best_answer, dist + 1); // The target is the cell above the exit, we need to take 1 more step
-                    //println!("Best answer: {best_answer}");
-                } else {
-                    //println!("From:");
-                    //checking.print(&mut blizzards);
-                    let next_states = checking.next_states(&mut blizzards);
-                    // for s in next_states.clone() {
-                    //     println!("Could go to....");
-                    //     s.print(&mut blizzards);
-                    // }
-                    // io::stdin().read_line(&mut s);
-                    let with_distance = next_states.into_iter().map(|state| (state, dist + 1));
-                    to_check.extend(with_distance);
-                    //to_check.dedup_by_key(|e| e.0.clone());
-                    if turns % 1000 == 0 {
-                        println!("{} states to check | {duplicate_skips} dups | {distance_skips} abandoned | {} best answer | {}ms per iteration", to_check.len(), best_answer, last_iteration.elapsed().as_millis());
-                        last_iteration = Instant::now();
-                    }
-                }
-            }
-        }
-
-        println!("Best answer should not be 152606: {}", best_answer != 152606);
-        println!("Best answer should be smaller than 88205: {}", best_answer < 88205);
-        return best_answer;
-    }
-
-    fn can_wait(&self, next_blizzards: &[Blizzard]) -> bool {
-        next_blizzards.iter().all(|blizz| blizz.loc != self.player)
-    }
-
-    fn print(&self, blizzards: &mut BlizzardContainer) {
+    fn _print(&self, blizzards: &mut BlizzardContainer) {
         println!("t =  {}", self.timestamp);
         // Top wall
         for x in 0..=WIDTH {
@@ -220,7 +161,7 @@ impl State {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Direction {
-    Up, Down, Left, Right,
+    Up, Down, Left, Right, None
 }
 
 impl Direction {
@@ -240,19 +181,12 @@ impl Direction {
             Direction::Down => (0 , 1),
             Direction::Left => (-1, 0),
             Direction::Right => (1, 0),
+            Direction::None => (0, 0),
         }
     }
 
-    fn productive() -> Vec<Direction> {
-        vec![Direction::Down, Direction::Right]
-    }
-
-    fn backwards() -> Vec<Direction> {
-        vec![Direction::Up, Direction::Left]
-    }
-
     fn all() -> Vec<Direction> {
-        vec![Direction::Down, Direction::Right, Direction::Up, Direction::Left]
+        vec![Direction::Down, Direction::Right, Direction::Up, Direction::Left, Direction::None]
     }
 }
 
@@ -303,7 +237,6 @@ impl BlizzardContainer {
     fn get(&mut self, timestamp: usize) -> Vec<Blizzard> {
         let timestamp = timestamp % CYCLE;
         while timestamp >= self.blizzards.len() {
-            println!("Generating blizzard for {timestamp}");
             self.blizzards.push(Blizzard::next_blizzards(&self.blizzards[self.blizzards.len() - 1]));
         }
         self.blizzards[timestamp].clone()
@@ -342,6 +275,7 @@ impl Display for Direction {
             Direction::Down => 'v',
             Direction::Left => '<',
             Direction::Right => '>',
+            Direction::None => '.',
         })
     }
 }
