@@ -1,5 +1,5 @@
 ﻿use std::fmt::Display;
-use std::collections::{HashMap, HashSet};
+use crate::search::*;
 
 use super::super::day::Day;
 
@@ -84,7 +84,13 @@ impl Day12 {
     fn find_shortest_path(&self, start: &Vec<Point>, target: Point) -> Vec<Point> {
         let mut best_path = vec![];
         for &point in start {
-            if let Some(path) = self.a_star(point, target, if best_path.is_empty() { usize::MAX } else { best_path.len()}) {
+            let give_up_threshold = if best_path.is_empty() { usize::MAX } else { best_path.len()};
+            if let Some(path) = astar_search(&point, 
+                |_p| 1, // No heuristic
+                |&p| self.neighbours(p),
+                |&p| p == target,
+                give_up_threshold)
+                {
                 if best_path.is_empty() || path.len() < best_path.len() {
                     best_path = path;
                 }
@@ -92,54 +98,6 @@ impl Day12 {
         }
         
         best_path
-    }
-
-
-    fn a_star(&self, start: Point, target: Point, max_len: usize) -> Option<Vec<Point>> {
-        // Copied from pseudoCode on wikipedia, plus slight rust help from `pathfinding` crate source.
-        // But that is more optimised. Complate lack of borrows here in favour of copies feels so not rust
-
-        // The set of discovered points that need to be expanded. Intially, only start is known.
-        // If this becomes a BinaryHeap, it becomes faster to find 'current' below
-        let mut open_set = HashSet::new();
-        open_set.insert(start);
-
-        // For Point p, came_from[p] is the point immediately preceding it on the cheapest path from
-        // start to p currently known
-        let mut came_from: HashMap<Point, Point> = HashMap::new();
-
-        // for point p, g_score[p] is the cost of the cheapest path from start to n currently known
-        let mut g_score: HashMap<Point, usize> = HashMap::new();
-        g_score.insert(start, 0);
-
-        // f_score would be g_score modified by a heuristic, but we don't have one, so just ignore it
-
-        while !open_set.is_empty() {
-            let current: Point = *open_set.iter()
-                .min_by_key(|&point| g_score.get(point).unwrap_or(&usize::MAX))
-                .unwrap();
-
-            if current == target {
-                return Some(Self::reconstruct_path(&came_from, current));
-            }
-
-            open_set.remove(&current);
-            for neighbour in self.neighbours(current) {
-                // We would calculate weight here, but we don't have any
-                let tentative_g_score = g_score.get(&current).unwrap() + 1;
-                // Give up early if we have gone longer than our currently known shortest
-                let give_up = tentative_g_score >= max_len;
-                
-                if !give_up && tentative_g_score < *g_score.get(&neighbour).unwrap_or(&usize::MAX) {
-                    came_from.insert(neighbour, current);
-                    g_score.insert(neighbour, tentative_g_score);
-                    // Update f_score here if we include it
-                    
-                    open_set.insert(neighbour);
-                }
-            }
-        }
-        None
     }
 
     fn neighbours(&self, p: Point) -> Vec<Point> {
@@ -163,24 +121,6 @@ impl Day12 {
         if height == b'E' { height = b'z' };
 
         height
-    }
-
-    fn reconstruct_path(came_from: &HashMap<Point, Point>, endpoint: Point) -> Vec<Point> {
-        // Following the path set out in came_from
-        let mut result: Vec<Point> = vec![];
-        let mut current = endpoint;
-        loop {
-            result.push(current);
-            match came_from.get(&current) {
-                Some(&parent) => {
-                    current = parent;
-                },
-                None => {
-                    result.reverse();
-                    return result; 
-                }
-            }
-        }
     }
 }
 

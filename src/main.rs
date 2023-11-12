@@ -1,6 +1,7 @@
 #![feature(iter_next_chunk)]
 
 mod y2022;
+mod search;
 mod day;
 
 use std::env;
@@ -56,7 +57,7 @@ fn test(full: bool, runs: u16) {
     ]
     } else {
         vec![
-            Box::new(Day24::new()),
+            Box::new(Day12::new()),
         ]
     };
 

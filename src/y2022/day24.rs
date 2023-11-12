@@ -23,7 +23,6 @@ impl Day24 {
         let input = include_str!("input24");
         //let input = include_str!("input24_example");
 
-
         let mut blizzards = Vec::new();
 
         let lines = input.lines();
@@ -82,28 +81,14 @@ impl Eq for State {}
 
 impl State {
     fn next_states(&self, blizzards: &mut BlizzardContainer) -> Vec<State> {
-        //println!("From:\n{self}\n");
         let ts = self.timestamp + 1;
         let next_blizzards = blizzards.get(ts);
         let mut moves: Vec<_> = Direction::all().iter().filter_map(|dir| self.try_move(dir, &next_blizzards)).collect();
         if self.can_wait(&next_blizzards) {
             moves.push(State { player: self.player, timestamp: ts });
         }
-        // for m in &moves {
-        //     println!("Could go\n{m}");
-        // }
-        // let mut s = String::new();
-        // io::stdin().read_line(&mut s);
-        moves
 
-        // if !moves.is_empty() {
-        //     moves
-        // } else if self.can_wait(&next_blizzards) {
-        //     // if we can't move towards the goal, we might want to wait
-        //     vec![ State { player: self.player, blizzards: self.next_blizzards() }]
-        // } else {
-        //     Vec::new()
-        // }
+        moves
     }
 
     fn try_move(&self, dir: &Direction, blizzards: &[Blizzard]) -> Option<State> {
@@ -119,8 +104,9 @@ impl State {
 
 
     fn find_path_2(&self, initial_state: Vec<Blizzard>) -> usize {
+        return 0;
         let mut to_check: Vec<(State, usize)> = vec![(self.clone(), 0)];
-        let mut seen = HashSet::new();
+        let mut best_to_coord = HashMap::<Coord, usize>::new();
         let mut best_answer = usize::MAX;
         let mut turns = 0;
         let mut last_iteration = Instant::now();
@@ -134,10 +120,10 @@ impl State {
             if dist + remaining_dist >= best_answer {
                 distance_skips += 1;
             } else 
-            if seen.contains(&checking) {
+            if best_to_coord.contains_key(&checking.player) {
                 duplicate_skips += 1;
             } else {
-                seen.insert(checking.clone());
+                //seen.insert(checking.clone());
                 //println!("Checking \n{checking}");
                 if checking.player == TARGET { 
                     // println!("{checking}");
