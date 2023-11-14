@@ -1,15 +1,51 @@
 ﻿use super::super::day::Day;
 
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pt1_example_should_work() {
+        let input = "1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000";
+        let mut day = Day1::new(input);
+        let result = day.part1();
+        assert_eq!("24000", result); 
+    }
+
+    #[test]
+    fn pt2_example_should_work() {
+        let input = "1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000";
+        let mut day = Day1::new(input);
+        day.part1();
+        let result = day.part2();
+        assert_eq!("45000", result); 
+    }
+
+    #[test]
+    fn pt1_should_work() {
+        let input = include_str!("input1");
+        let mut day = Day1::new(input);
+        let result = day.part1();
+        assert_eq!(day.answer1(), result);
+    }
+
+    #[test]
+    fn pt2_should_work() {
+        let input = include_str!("input1");
+        let mut day = Day1::new(input);
+        day.part1();
+        let result = day.part2();
+        assert_eq!(day.answer2(), result);
+    }
+}
+
 pub struct Day1
 {
     sums: Vec<usize>,
 }
 
 impl Day1 {
-    pub fn new() -> Day1
+    pub fn new(input: &str) -> Day1
     {
-        let input = include_str!("input1");
-        //let input = "1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000";
         let sums = input.trim().split("\n\n") // split elves
             .map(|lines| lines
                 .split('\n')
