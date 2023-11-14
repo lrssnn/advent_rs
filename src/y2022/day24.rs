@@ -1,18 +1,20 @@
-﻿use std::{fmt::Display, ops::Add };
-use std::hash::{Hash, Hasher};
+﻿use std::fmt::Display;
+use std::hash::Hash;
 use crate::search::*;
+use crate::two_dimensional::coord::*;
+use crate::two_dimensional::direction::*;
 
 use super::super::day::Day;
 
-//const HEIGHT: u8 = 35;
-//const WIDTH: u8 = 100;
+const HEIGHT: u8 = 35;
+const WIDTH: u8 = 100;
 
-const HEIGHT: u8 = 4;
-const WIDTH: u8 = 6;
+//const HEIGHT: u8 = 4;
+//const WIDTH: u8 = 6;
 
 const CYCLE: usize = HEIGHT as usize * WIDTH as usize;
-const TARGET: Coord = Coord { x: WIDTH, y: HEIGHT}; // Target the cell above, the rules treat the actual target as a wall
-const START: Coord = Coord { x: 1, y: 0 };
+const TARGET: Coord<u8> = Coord { x: WIDTH, y: HEIGHT}; // Target the cell above, the rules treat the actual target as a wall
+const START: Coord<u8> = Coord { x: 1, y: 0 };
 
 pub struct Day24
 {
@@ -23,7 +25,7 @@ impl Day24 {
     pub fn new() -> Day24
     {
         let input = include_str!("input24");
-        let input = include_str!("input24_example");
+        //let input = include_str!("input24_example");
 
         let mut blizzards = Vec::new();
 
@@ -61,6 +63,7 @@ impl Day for Day24 {
     }
 
     fn part2(&mut self) -> String {
+        return "".to_string();
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
         let get_next_states = | s: &State | s.next_states(&mut blizzards);
         let initial_state = State { player: START, timestamp: 0 };
@@ -114,26 +117,10 @@ impl Day for Day24 {
     }
 }
 
-#[derive(Clone, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct State {
-    player: Coord,
+    player: Coord<u8>,
     timestamp: usize,
-}
-
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.player.hash(state);
-        (self.timestamp % CYCLE as usize).hash(state);
-    }
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        let my_ts = self.timestamp % CYCLE;
-        let other_ts = other.timestamp % CYCLE;
-        self.player == other.player 
-        && my_ts == other_ts
-    }
 }
 
 impl State {
@@ -146,6 +133,7 @@ impl State {
             .filter_map(|dir| self.try_move(dir, &next_blizzards))
             .collect();
 
+        /*
         println!("From...\n");
         self._print(blizzards);
         println!("To...\n");
@@ -153,11 +141,12 @@ impl State {
             s._print(blizzards);
             println!();
         }
+        */
         moves
     }
 
     fn try_move(&self, dir: &Direction, blizzards: &[Blizzard]) -> Option<State> {
-        let proposed = self.player + dir.offset();
+        let proposed = self.player + *dir;
         if proposed != START && (proposed.x == 0 || proposed.y == 0 || proposed.x == WIDTH + 1 || proposed.y == HEIGHT + 1) { return None; }
         if blizzards.iter().all(|blizz| blizz.loc != proposed) {
             let new_state = State { player: proposed, timestamp: self.timestamp + 1 };
@@ -215,40 +204,10 @@ impl State {
      }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Direction {
-    Up, Down, Left, Right, None
-}
-
-impl Direction {
-    fn from_char(c: char) -> Direction {
-        match c  {
-            '^' => Direction::Up,
-            'v' => Direction::Down,
-            '<' => Direction::Left,
-            '>' => Direction::Right,
-            _ => panic!("Unknown char type")
-        }
-    }
-
-    fn offset(&self) -> (isize, isize) {
-        match self {
-            Direction::Up => (0, -1),
-            Direction::Down => (0 , 1),
-            Direction::Left => (-1, 0),
-            Direction::Right => (1, 0),
-            Direction::None => (0, 0),
-        }
-    }
-
-    fn all() -> Vec<Direction> {
-        vec![Direction::Down, Direction::Right, Direction::Up, Direction::Left, Direction::None]
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Blizzard {
-    loc: Coord,
+    loc: Coord<u8>,
     btype: Direction,
 }
 
@@ -257,33 +216,6 @@ struct BlizzardContainer {
     blizzards: Vec<Vec<Blizzard>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct Coord {
-    x: u8,
-    y: u8,
-}
-
-impl Coord {
-    fn new(x: u8, y: u8) -> Coord {
-        Coord { x, y }
-    }
-}
-
-impl PartialEq<(u8, u8)> for Coord {
-    fn eq(&self, other: &(u8, u8)) -> bool {
-        self.x == other.0 && self.y == other.1
-    }
-}
-
-impl Add<(isize, isize)> for Coord {
-    fn add(self, rhs: (isize, isize)) -> Self {
-        let x = ((self.x as isize) + rhs.0).max(0) as u8;
-        let y = ((self.y as isize) + rhs.1).max(0) as u8;
-        Coord { x, y }
-    }
-
-    type Output = Self;
-}
 
 impl BlizzardContainer {
     fn new(initial_state: Vec<Blizzard>) -> BlizzardContainer {
@@ -293,7 +225,7 @@ impl BlizzardContainer {
     fn get(&mut self, timestamp: usize) -> Vec<Blizzard> {
         let timestamp = timestamp % CYCLE;
         while timestamp >= self.blizzards.len() {
-            println!("Creating map for {}", self.blizzards.len());
+            //println!("Creating map for {}", self.blizzards.len());
             self.blizzards.push(Blizzard::next_blizzards(&self.blizzards[self.blizzards.len() - 1]));
         }
         self.blizzards[timestamp].clone()
@@ -306,12 +238,10 @@ impl Blizzard {
     }
 
     fn next_loc(&self) -> Blizzard {
-        let mut next = self.loc + self.btype.offset();
-        if next.x == 0 { next.x = WIDTH; }
-        if next.x == WIDTH + 1 { next.x = 1;}
-        if next.y == 0 { next.y = HEIGHT; }
-        if next.y == HEIGHT + 1 { next.y = 1;}
-        Blizzard { btype: self.btype, loc: next}
+        Blizzard { 
+            btype: self.btype, 
+            loc: self.loc.wrapped_add(self.btype, (1, WIDTH), (1, HEIGHT))
+        }
     }
 
     fn next_blizzards(bzs: &[Blizzard]) -> Vec<Blizzard> {
@@ -322,23 +252,5 @@ impl Blizzard {
 impl Display for Blizzard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.btype)
-    }
-}
-
-impl Display for Direction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Direction::Up => '^',
-            Direction::Down => 'v',
-            Direction::Left => '<',
-            Direction::Right => '>',
-            Direction::None => '.',
-        })
-    }
-}
-
-impl Display for Coord {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({},{})", self.x, self.y)
     }
 }

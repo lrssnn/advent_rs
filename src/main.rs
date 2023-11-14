@@ -3,6 +3,7 @@
 mod y2022;
 mod search;
 mod day;
+mod two_dimensional;
 
 use std::env;
 use std::io::Write;
