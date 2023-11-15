@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::{HashSet, VecDeque}};
+﻿use std::{fmt::Display, collections::VecDeque};
 
 use super::super::day::Day;
 
@@ -46,7 +46,7 @@ impl Day for Day18 {
                 .all(|n| self.cubes.contains(n) || air_cubes.contains(n))
             ).copied().collect();
 
-        //contained_air.dedup();
+        contained_air.dedup();
         
 
         //println!("{} contained cubes", contained_air.len());
@@ -83,7 +83,8 @@ impl Day for Day18 {
 }
 
 impl Day18 {
-    fn reachable(cubes: &Vec<Cube>, seed: &Cube) -> Vec<Cube> {
+    #![allow(dead_code)]
+    fn reachable(cubes: &[Cube], seed: &Cube) -> Vec<Cube> {
         let mut result = Vec::new();
 
         let mut queue = VecDeque::new();

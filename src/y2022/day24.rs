@@ -63,7 +63,6 @@ impl Day for Day24 {
     }
 
     fn part2(&mut self) -> String {
-        return "".to_string();
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
         let get_next_states = | s: &State | s.next_states(&mut blizzards);
         let initial_state = State { player: START, timestamp: 0 };

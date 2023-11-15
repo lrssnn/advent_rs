@@ -11,7 +11,7 @@ impl Day16 {
     #[allow(dead_code)]
     pub fn new() -> Day16
     {
-        let input = include_str!("input16");
+        //let input = include_str!("input16");
         let input = include_str!("input16_example");
 
         let valves = input.trim().split('\n')
@@ -194,7 +194,7 @@ impl Day16 {
         //     println!("  {child:?}");
         // }
 
-        let score = children.iter().map(|state| self.find_best_2(&state, cache)).max().unwrap();
+        let score = children.iter().map(|state| self.find_best_2(state, cache)).max().unwrap();
         cache.insert(from.clone(), score);
         score
     }
@@ -392,8 +392,8 @@ impl State2 {
         let elephant_at = if !elephant_path.0.is_empty() { elephant_path.0.clone() } else { self.elephant_at.clone() };
 
         // This is weird - Its the travel time left AFTER we spend the one time step implicit in the state transition
-        let me_travel = me_path.1.saturating_sub(1) as u32;
-        let elephant_travel = elephant_path.1.saturating_sub(1) as u32;
+        let me_travel = me_path.1.saturating_sub(1);
+        let elephant_travel = elephant_path.1.saturating_sub(1);
         State2 {
             me_at,
             elephant_at,

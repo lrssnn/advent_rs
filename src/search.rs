@@ -65,7 +65,7 @@ fn reconstruct_path<T: Eq + Hash + Clone>(came_from: &HashMap<T, T>, endpoint: T
     loop {
         result.push(current.clone());
         match came_from.get(&current) {
-            Some(&ref parent) => {
+            Some(parent) => {
                 current = parent.clone();
             },
             None => {

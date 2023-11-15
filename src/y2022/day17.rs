@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::HashMap};
+﻿use std::collections::HashMap;
 
 use super::super::day::Day;
 
@@ -29,14 +29,13 @@ impl Day for Day17 {
     fn answer2(&self) -> String { String::from("1582758620701") } // Uncle's
 
     fn part1(&mut self) -> String {
-        return "".to_string();
         let mut part1 = self.chamber.clone();
 
         for _ in 0..2022 {
             part1.drop_one();
         }
 
-        return part1.height().to_string();
+        part1.height().to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -99,7 +98,7 @@ impl Day for Day17 {
                 let leftover_height = part2.height() - height;
                 println!("After {leftover_drops} more drops, we added {leftover_height} rows");
                 let answer = integral_height + leftover_height;
-                if (answer == 1514534883742) { println!("Known bad answer!!!\n");}
+                if answer == 1514534883742 { println!("Known bad answer!!!\n");}
 
                 return (answer).to_string();
             } else {
