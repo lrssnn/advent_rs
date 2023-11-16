@@ -1,6 +1,36 @@
 ﻿use std::{collections::HashSet, fmt::Display};
 use super::super::day::Day;
 
+mod tests {
+    #![allow(unused_imports)]
+    use super::*;
+
+    #[test]
+    fn example_pt1() {
+        let input = "vJrwpWtwJgWrhcsFMMfFFhFp\njqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\nPmmdzqPrVvPwwTWBwg\nwMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\nttgJtRGJQctTZtZT\nCrZsJsPPZsGzwwsLwLmpwMDw";
+        let result = Day3::new_with_input(input).part1();
+        assert_eq!("157", result); 
+    }
+
+    #[test]
+    fn real_pt1() {
+        let result = Day3::new().part1();
+        assert_eq!("8515", result); 
+    }
+
+    #[test]
+    fn example_pt2() {
+        let input = "vJrwpWtwJgWrhcsFMMfFFhFp\njqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\nPmmdzqPrVvPwwTWBwg\nwMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\nttgJtRGJQctTZtZT\nCrZsJsPPZsGzwwsLwLmpwMDw";
+        let result = Day3::new_with_input(input).part2();
+        assert_eq!("70", result); 
+    }
+
+    #[test]
+    fn real_pt2() {
+        let result = Day3::new().part2();
+        assert_eq!("2434", result); 
+    }
+}
 pub struct Day3
 {
     rucks: Vec<Rucksack>,
@@ -8,11 +38,12 @@ pub struct Day3
 
 impl Day3 {
     #[allow(dead_code)]
-    pub fn new() -> Day3
-    {
-        let input = include_str!("input3");
-        //let input = "vJrwpWtwJgWrhcsFMMfFFhFp\njqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\nPmmdzqPrVvPwwTWBwg\nwMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\nttgJtRGJQctTZtZT\nCrZsJsPPZsGzwwsLwLmpwMDw";
+    pub fn new() -> Day3 {
+        Day3::new_with_input(include_str!("input3"))
+    }
 
+    pub fn new_with_input(input: &str) -> Day3
+    {
         let lines = input.trim().split('\n');
         let rucks = lines.map(Rucksack::from_str).collect();
         Day3 { rucks }
@@ -29,12 +60,15 @@ impl Day for Day3 {
     }
 
     fn part2(&mut self) -> String {
-        let mut rucks = self.rucks.iter();
-        let mut sum = 0;
-        while let Ok(chunk) = rucks.next_chunk::<3>() {
-            sum += score_char(Rucksack::find_common(chunk))
-        } 
-        sum.to_string()
+        (0..(self.rucks.len() / 3))
+            .map(|i| score_char(
+                Rucksack::find_common(
+                    [&self.rucks[i*3], &self.rucks[(i*3) + 1], &self.rucks[(i*3) + 2]]
+                )
+            )
+        )
+        .sum::<usize>()
+        .to_string()
     }
 }
 

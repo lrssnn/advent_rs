@@ -1,43 +1,41 @@
 ﻿use super::super::day::Day;
-extern crate test;
 
 mod tests {
     #![allow(unused_imports)]
     use super::*;
-    use test::Bencher;
 
     #[test]
     fn packet_marker_1() {
         let input: Vec<char> = "mjqjpqmgbljsphdztnvjfqwrcgsmlb".chars().collect();
-        let result = find_packet_marker(&input);
+        let result = Day6::find_packet_marker(&input);
         assert_eq!(7, result); 
     }
 
     #[test]
     fn packet_marker_2() {
         let input: Vec<char> = "bvwbjplbgvbhsrlpgdmjqwftvncz".chars().collect();
-        let result = find_packet_marker(&input);
+        let result = Day6::find_packet_marker(&input);
         assert_eq!(5, result); 
     }
 
     #[test]
     fn packet_marker_3() {
         let input: Vec<char> = "nppdvjthqldpwncqszvftbrmjlhg".chars().collect();
-        let result = find_packet_marker(&input);
+        let result = Day6::find_packet_marker(&input);
         assert_eq!(6, result); 
     }
 
     #[test]
     fn packet_marker_4() {
         let input: Vec<char> = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg".chars().collect();
-        let result = find_packet_marker(&input);
+        let result = Day6::find_packet_marker(&input);
         assert_eq!(10, result); 
     }
 
     #[test]
     fn packet_marker_5() {
         let input: Vec<char> = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw".chars().collect();
-        let result = find_packet_marker(&input);
+        let result = Day6::find_packet_marker(&input);
         assert_eq!(11, result); 
     }
 
@@ -51,35 +49,35 @@ mod tests {
     #[test]
     fn message_marker_1() {
         let input: Vec<char> = "mjqjpqmgbljsphdztnvjfqwrcgsmlb".chars().collect();
-        let result = find_message_marker(&input);
+        let result = Day6::find_message_marker(&input);
         assert_eq!(19, result); 
     }
 
     #[test]
     fn message_marker_2() {
         let input: Vec<char> = "bvwbjplbgvbhsrlpgdmjqwftvncz".chars().collect();
-        let result = find_message_marker(&input);
+        let result = Day6::find_message_marker(&input);
         assert_eq!(23, result); 
     }
 
     #[test]
     fn message_marker_3() {
         let input: Vec<char> = "nppdvjthqldpwncqszvftbrmjlhg".chars().collect();
-        let result = find_message_marker(&input);
+        let result = Day6::find_message_marker(&input);
         assert_eq!(23, result); 
     }
 
     #[test]
     fn message_marker_4() {
         let input: Vec<char> = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg".chars().collect();
-        let result = find_message_marker(&input);
+        let result = Day6::find_message_marker(&input);
         assert_eq!(29, result); 
     }
 
     #[test]
     fn message_marker_5() {
         let input: Vec<char> = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw".chars().collect();
-        let result = find_message_marker(&input);
+        let result = Day6::find_message_marker(&input);
         assert_eq!(26, result); 
     }
 
@@ -89,19 +87,6 @@ mod tests {
         let result = day.part2();
         assert_eq!("2265", result); 
     }
-
-    #[bench]
-    fn pt1_bench(b: &mut Bencher) {
-        let input: Vec<char> = include_str!("input6").chars().collect();
-        b.iter(|| find_packet_marker(&input));
-    }
-
-    #[bench]
-    fn pt2_bench(b: &mut Bencher) {
-        let input: Vec<char> = include_str!("input6").chars().collect();
-        b.iter(|| find_message_marker(&input));
-    }
-
 }
 
 pub struct Day6
@@ -112,6 +97,7 @@ pub struct Day6
 impl Day6 {
     pub fn new() -> Day6 {
         Self::new_with_input(include_str!("input6"))
+        //Self::new_with_input("mjqjpqmgbljsphdztnvjfqwrcgsmlb")
     }
 
     pub fn new_with_input(input: &str) -> Day6
@@ -126,38 +112,167 @@ impl Day for Day6 {
     fn answer2(&self) -> String { String::from("2265") }
 
     fn part1(&mut self) -> String {
-        find_packet_marker(&self.characters).to_string()
+        Self::find_packet_marker(&self.characters).to_string()
     }
 
     fn part2(&mut self) -> String {
-        find_message_marker(&self.characters).to_string()
+        Self::find_message_marker(&self.characters).to_string()
     }
 }
 
-fn find_packet_marker(data: &[char]) -> usize {
-    find_duplicate_window(data, 4)
-}
-
-fn find_message_marker(data: &[char]) -> usize {
-    find_duplicate_window(data, 14)
-}
-
-fn find_duplicate_window(data: &[char], window_size: usize) -> usize {
-    for i in 0..(data.len() - window_size) {
-        if contains_no_duplicates(&data[i..(i + window_size + 1)]) {
-            return i + window_size;
-        }
+impl Day6 {
+    pub fn find_packet_marker(data: &[char]) -> usize {
+        Self::find_duplicate_window(data, 4)
     }
-    panic!("Failed to find an answer");
-}
 
-fn contains_no_duplicates(data: &[char]) -> bool {
-    for i in 0..(data.len() - 1) {
-        for j in (i + 1)..(data.len() - 1) {
-            if data[i] == data[j] {
-                return false;
+    pub fn find_message_marker(data: &[char]) -> usize {
+        Self::find_duplicate_window(data, 14)
+    }
+
+    fn find_duplicate_window(data: &[char], window_size: usize) -> usize {
+        data.windows(window_size).enumerate()
+        .find(|(_index, window)| Self::contains_no_duplicates(window))
+        .unwrap().0 + window_size
+    }
+
+    fn contains_no_duplicates(data: &[char]) -> bool {
+        // Is this stupid?
+        (0..data.len()).all(|i| ((i + 1)..(data.len())).all(|j| data[i] != data[j]))
+    }
+
+    fn find_packet_marker_evil(data: &[char]) -> usize {
+        for i in 4..data.len() {
+            if 
+                // I should be sent to prison
+                data[i - 4] != data[i - 3]
+                && data[i - 4] != data[i - 2]
+                && data[i - 4] != data[i - 1]
+                && data[i - 4] != data[i]
+                && data[i - 3] != data[i - 2]
+                && data[i - 3] != data[i - 1]
+                && data[i - 3] != data[i]
+                && data[i - 2] != data[i - 1]
+                && data[i - 2] != data[i]
+                && data[i - 1] != data[i] {
+                    return i;
             }
         }
+
+        panic!("Failed to find an answer!")
     }
-    true
+
+    fn find_message_marker_evil(data: &[char]) -> usize {
+for i in 14..data.len() {
+            if 
+                // I should be sent to prison
+                data[i - 14] != data[i - 13]
+                && data[i - 14] != data[i - 12]
+                && data[i - 14] != data[i - 11]
+                && data[i - 14] != data[i - 10]
+                && data[i - 14] != data[i - 9]
+                && data[i - 14] != data[i - 8]
+                && data[i - 14] != data[i - 7]
+                && data[i - 14] != data[i - 6]
+                && data[i - 14] != data[i - 5]
+                && data[i - 14] != data[i - 4]
+                && data[i - 14] != data[i - 3]
+                && data[i - 14] != data[i - 2]
+                && data[i - 14] != data[i - 1]
+                && data[i - 14] != data[i]
+                && data[i - 13] != data[i - 12]
+                && data[i - 13] != data[i - 11]
+                && data[i - 13] != data[i - 10]
+                && data[i - 13] != data[i - 9]
+                && data[i - 13] != data[i - 8]
+                && data[i - 13] != data[i - 7]
+                && data[i - 13] != data[i - 6]
+                && data[i - 13] != data[i - 5]
+                && data[i - 13] != data[i - 4]
+                && data[i - 13] != data[i - 3]
+                && data[i - 13] != data[i - 2]
+                && data[i - 13] != data[i - 1]
+                && data[i - 13] != data[i]
+                && data[i - 12] != data[i - 11]
+                && data[i - 12] != data[i - 10]
+                && data[i - 12] != data[i - 9]
+                && data[i - 12] != data[i - 8]
+                && data[i - 12] != data[i - 7]
+                && data[i - 12] != data[i - 6]
+                && data[i - 12] != data[i - 5]
+                && data[i - 12] != data[i - 4]
+                && data[i - 12] != data[i - 3]
+                && data[i - 12] != data[i - 2]
+                && data[i - 12] != data[i - 1]
+                && data[i - 12] != data[i]
+                && data[i - 11] != data[i - 10]
+                && data[i - 11] != data[i - 9]
+                && data[i - 11] != data[i - 8]
+                && data[i - 11] != data[i - 7]
+                && data[i - 11] != data[i - 6]
+                && data[i - 11] != data[i - 5]
+                && data[i - 11] != data[i - 4]
+                && data[i - 11] != data[i - 3]
+                && data[i - 11] != data[i - 2]
+                && data[i - 11] != data[i - 1]
+                && data[i - 11] != data[i]
+                && data[i - 10] != data[i - 9]
+                && data[i - 10] != data[i - 8]
+                && data[i - 10] != data[i - 7]
+                && data[i - 10] != data[i - 6]
+                && data[i - 10] != data[i - 5]
+                && data[i - 10] != data[i - 4]
+                && data[i - 10] != data[i - 3]
+                && data[i - 10] != data[i - 2]
+                && data[i - 10] != data[i - 1]
+                && data[i - 10] != data[i]
+                && data[i - 9] != data[i - 8]
+                && data[i - 9] != data[i - 7]
+                && data[i - 9] != data[i - 6]
+                && data[i - 9] != data[i - 5]
+                && data[i - 9] != data[i - 4]
+                && data[i - 9] != data[i - 3]
+                && data[i - 9] != data[i - 2]
+                && data[i - 9] != data[i - 1]
+                && data[i - 9] != data[i]
+                && data[i - 8] != data[i - 7]
+                && data[i - 8] != data[i - 6]
+                && data[i - 8] != data[i - 5]
+                && data[i - 8] != data[i - 4]
+                && data[i - 8] != data[i - 3]
+                && data[i - 8] != data[i - 2]
+                && data[i - 8] != data[i - 1]
+                && data[i - 8] != data[i]
+                && data[i - 7] != data[i - 6]
+                && data[i - 7] != data[i - 5]
+                && data[i - 7] != data[i - 4]
+                && data[i - 7] != data[i - 3]
+                && data[i - 7] != data[i - 2]
+                && data[i - 7] != data[i - 1]
+                && data[i - 7] != data[i]
+                && data[i - 6] != data[i - 5]
+                && data[i - 6] != data[i - 4]
+                && data[i - 6] != data[i - 3]
+                && data[i - 6] != data[i - 2]
+                && data[i - 6] != data[i - 1]
+                && data[i - 6] != data[i]
+                && data[i - 5] != data[i - 4]
+                && data[i - 5] != data[i - 3]
+                && data[i - 5] != data[i - 2]
+                && data[i - 5] != data[i - 1]
+                && data[i - 5] != data[i]
+                && data[i - 4] != data[i - 3]
+                && data[i - 4] != data[i - 2]
+                && data[i - 4] != data[i - 1]
+                && data[i - 4] != data[i]
+                && data[i - 3] != data[i - 2]
+                && data[i - 3] != data[i - 1]
+                && data[i - 3] != data[i]
+                && data[i - 2] != data[i - 1]
+                && data[i - 2] != data[i]
+                && data[i - 1] != data[i] {
+                    return i;
+                }
+            } 
+                panic!();
+    }
 }
