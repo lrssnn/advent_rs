@@ -1,6 +1,3 @@
-#![feature(iter_next_chunk)]
-#![feature(test)]
-
 pub mod y2022;
 mod search;
 pub mod day;
