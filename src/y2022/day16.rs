@@ -10,7 +10,7 @@ pub struct Day16
 impl Day16 {
     pub fn new() -> Day16
     {
-        //let input = include_str!("input16");
+        let input = include_str!("input16");
         let input = include_str!("input16_example");
 
         let valves = input.trim().split('\n')
@@ -28,7 +28,8 @@ impl Day for Day16 {
     fn answer1(&self) -> String { String::from("2265") }
     fn answer2(&self) -> String { String::from("?") }
 
-    // SLOW! 276656ms for non-example input (release)
+    // SLOW! 5558ms for non-example input (release)
+    // 22ms for example
     fn part1(&mut self) -> String {
         self.consolidate_zero_rate_valves();
 
@@ -42,7 +43,7 @@ impl Day for Day16 {
             score: 0,
             active_ids: Vec::new(),
         };
-        self.find_best(&initial_state, &mut HashMap::new()).to_string()
+        self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -53,16 +54,16 @@ impl Day for Day16 {
             elephant_travel: 0,
 
             //time_left: 25,
-            time_left: 9,
+            time_left: 25,
             score: 0,
             active_ids: Vec::new(),
         };
-        self.find_best(&initial_state, &mut HashMap::new()).to_string()
+        self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
     }
 }
 
 impl Day16 {
-    fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>) -> u32 {
+    fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>, mut best: u32) -> u32 {
         // println!("Evaluating...");
         // println!("{from:?}");
         // let mut buf = String::new();
@@ -130,7 +131,14 @@ impl Day16 {
         //      println!("  {child:?}");
         //  }
 
-        let score = children.iter().map(|state| self.find_best(state, cache)).max().unwrap();
+        // Filter out states that couldn't possibly increase our current best
+        let mut score = 0;
+        for state in &children {
+            if state.potential_score(&self.valves) > best {
+                score = u32::max(score, self.find_best(state, cache, best));
+                best = u32::max(best, score);
+            }
+        } 
         cache.insert(from.clone(), score);
         score
     }
@@ -206,19 +214,6 @@ enum Choice {
 type Path = (String, u32);
 
 impl State {
-    // TODO, I'm thinking we should have something like this
-    // fn apply_choices(&self, me_choice: Choice, elephant_choice: Choice) -> State {
-        // let result = self.apply_me_choice(me_choice);
-        // result = result.apply_elephant_choice(elephant_choice);
-        // result = result.apply_time_step()
-        // result
-    // }
-    // where Choice is an enum of Activate(some_valve) or Move(some_path), and apply_time_step reduces the time
-    // left and applies travel logic
-    // Then the search can separately enumerate the options 'me' has and the elephant has, and call this with every
-    // combination
-    // Neat! but I can't look at this any more right now
-
     fn apply_choices(&self, me_choice: Choice, elephant_choice: Choice) -> Option<State> {
         if let Choice::Activate(ref v, _) = me_choice {
             if let Choice::Activate(ref v2, _) = elephant_choice {
@@ -293,6 +288,17 @@ impl State {
             elephant_travel: self.elephant_travel.saturating_sub(1),
             ..self.clone()
         }
+    }
+
+    fn potential_score(&self, valves: &HashMap<String, Valve>) -> u32 {
+        // We can put a cap on the potential score by calculating the possible score if all valves became active at this point in time
+        let mut score = self.score;
+        for (_, valve) in valves {
+            if !self.active_ids.contains(&valve.id) {
+                score += valve.rate * self.time_left;
+            }
+        }
+        score
     }
 }
 
