@@ -11,7 +11,7 @@ impl Day16 {
     pub fn new() -> Day16
     {
         let input = include_str!("input16");
-        let input = include_str!("input16_example");
+        //let input = include_str!("input16_example");
 
         let valves = input.trim().split('\n')
             .map(|line| {
@@ -58,7 +58,9 @@ impl Day for Day16 {
             score: 0,
             active_ids: Vec::new(),
         };
-        self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
+        let score = self.find_best(&initial_state, &mut HashMap::new(), 0);
+        if score >= 2815 { println!("SCORE TOO HIGH!");}
+        score.to_string()
     }
 }
 
@@ -86,7 +88,7 @@ impl Day16 {
         // println!("min_time_me: {min_time_me}");
         // println!("min_time_el: {min_time_el}");
 
-        if from.time_left < min_time_me && from.time_left < min_time_el {
+        if (from.time_left < min_time_me && from.time_left < min_time_el) || self.valves.len() == from.active_ids.len() {
             //println!("Terminal state..");
             // if we have time, we should turn on this valve. Hacky
             let mut score = from.score;
@@ -291,14 +293,30 @@ impl State {
     }
 
     fn potential_score(&self, valves: &HashMap<String, Valve>) -> u32 {
-        // We can put a cap on the potential score by calculating the possible score if all valves became active at this point in time
+        // We can put a cap on the potential score by imagining that we can turn on the remaining valves in the shortest possible time
         let mut score = self.score;
-        for (_, valve) in valves {
-            if !self.active_ids.contains(&valve.id) {
-                score += valve.rate * self.time_left;
+        let mut sim_time_left = self.time_left;
+        let mut valves: Vec<_> = valves.values().filter(|v| !self.active_ids.contains(&v.id)).collect();
+        // for v in &valves { println!("{v}")}
+        valves.sort_by(|a, b| b.rate.cmp(&a.rate));
+        // println!("--");
+        // for v in &valves { println!("{v}")}
+        // println!("--");
+        // println!("  ");
+        for v in valves {
+            score += v.rate * sim_time_left;
+            sim_time_left -= 1;
+            if sim_time_left == 0 {
+                return score;
             }
         }
         score
+
+        // let mut score = self.score;
+        // for valve in valves.values().filter(|v| !self.active_ids.contains(&v.id)) {
+        //     score += valve.rate * self.time_left;
+        // }
+        // score
     }
 }
 
