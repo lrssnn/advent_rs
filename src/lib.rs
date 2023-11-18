@@ -1,3 +1,4 @@
+#![allow(clippy::new_without_default)]
 pub mod y2022;
 mod search;
 pub mod day;

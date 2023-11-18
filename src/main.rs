@@ -56,7 +56,7 @@ fn test(full: bool, runs: u16) {
     ]
     } else {
         vec![
-            Box::new(Day6::new()),
+            Box::new(Day16::new()),
         ]
     };
 
