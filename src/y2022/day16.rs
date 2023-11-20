@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::HashMap, iter};
+﻿use std::{fmt::Display, collections::{HashMap, HashSet}, iter, hash::{Hash, Hasher}};
 
 use super::super::day::Day;
 
@@ -26,7 +26,7 @@ impl Day16 {
 impl Day for Day16 {
     fn day_name(&self) -> String { String::from("16") }
     fn answer1(&self) -> String { String::from("2265") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("2811") }
 
     // SLOW! 5558ms for non-example input (release)
     // 22ms for example
@@ -41,7 +41,7 @@ impl Day for Day16 {
 
             time_left: 29,
             score: 0,
-            active_ids: Vec::new(),
+            active_ids: HashSet::new(),
         };
         self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
     }
@@ -56,7 +56,7 @@ impl Day for Day16 {
             //time_left: 25,
             time_left: 25,
             score: 0,
-            active_ids: Vec::new(),
+            active_ids: HashSet::new(),
         };
         let score = self.find_best(&initial_state, &mut HashMap::new(), 0);
         if score >= 2815 { println!("SCORE TOO HIGH!");}
@@ -88,19 +88,24 @@ impl Day16 {
         // println!("min_time_me: {min_time_me}");
         // println!("min_time_el: {min_time_el}");
 
-        if (from.time_left < min_time_me && from.time_left < min_time_el) || self.valves.len() == from.active_ids.len() {
+        if (from.time_left < min_time_me && from.time_left < min_time_el) /*|| self.valves.len() == from.active_ids.len()*/ {
             //println!("Terminal state..");
             // if we have time, we should turn on this valve. Hacky
             let mut score = from.score;
+            /*
+            let mut didThat = false;
             if from.time_left > 0 && !from.active_ids.contains(&from.me_at) {
-                // println!("Me turning on one last valve...");
+                //println!("Me turning on one last valve...");
                 score += me_valve.rate * from.time_left;
-            }
-
-            if from.time_left > 0 && !from.active_ids.contains(&from.elephant_at) {
-                // println!("El turning on one last valve...");
+                didThat = true;
+            } else if from.time_left > 0 && !from.active_ids.contains(&from.elephant_at) {
+                //println!("El turning on one last valve...");
                 score += el_valve.rate * from.time_left;
+                if didThat {
+                    println!("EMERGENCY!");
+                }
             }
+            */
             cache.insert(from.clone(), score);
             //println!("{score}, {} scores evaluated...", cache.len());
             return score;
@@ -171,7 +176,7 @@ impl Day16 {
         }
     }
 
-    fn get_choices(current_valve: &Valve, active_ids: &[String], time_left: u32, travel_time: u32) -> Vec<Choice> {
+    fn get_choices(current_valve: &Valve, active_ids: &HashSet<String>, time_left: u32, travel_time: u32) -> Vec<Choice> {
         if travel_time > 0 {
             return vec![Choice::DoNothing];
         } 
@@ -193,7 +198,7 @@ impl Day16 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct State {
     me_at: String,
     elephant_at: String,
@@ -202,7 +207,20 @@ struct State {
 
     time_left: u32,
     score: u32,
-    active_ids: Vec<String>,
+    active_ids: HashSet<String>,
+}
+
+impl Hash for State {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.me_at.hash(state);
+        self.elephant_at.hash(state);
+        self.me_travel.hash(state);
+        self.elephant_travel.hash(state);
+        self.time_left.hash(state);
+        let mut vec = self.active_ids.iter().collect::<Vec<&String>>();
+        vec.sort();
+        vec.hash(state);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -220,7 +238,7 @@ impl State {
         if let Choice::Activate(ref v, _) = me_choice {
             if let Choice::Activate(ref v2, _) = elephant_choice {
                 if v == v2 {
-                    //println!("Preventing double opening {v} - {v2}");
+                    // println!("Preventing double opening {v} - {v2}");
                     return None;
                 }
             }
@@ -235,7 +253,7 @@ impl State {
         match choice {
             Choice::Activate(valve, rate) => {
                 let mut active_ids = self.active_ids.clone();
-                active_ids.push(valve);
+                active_ids.insert(valve);
                 State {
                     active_ids,
                     score: self.score + (rate * self.time_left),
@@ -261,7 +279,7 @@ impl State {
         match choice {
             Choice::Activate(valve, rate) => {
                 let mut active_ids = self.active_ids.clone();
-                active_ids.push(valve);
+                active_ids.insert(valve);
                 State {
                     active_ids,
                     score: self.score + (rate * self.time_left),
