@@ -37,15 +37,16 @@ impl Day for Day16 {
             me_at: "AA".to_string(),
             elephant_at: "AA".to_string(),
             me_travel: 0,
-            elephant_travel: 30, // This means the elephant isn't going to do anything
+            elephant_travel: 50, // This means the elephant isn't going to do anything
 
             time_left: 29,
             score: 0,
             active_ids: HashSet::new(),
         };
-        self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
+        self.find_best(&initial_state, &mut HashMap::new(), 0, true).to_string()
     }
 
+    #[allow(unreachable_code)]
     fn part2(&mut self) -> String {
         let initial_state = State {
             me_at: "AA".to_string(),
@@ -58,14 +59,14 @@ impl Day for Day16 {
             score: 0,
             active_ids: HashSet::new(),
         };
-        let score = self.find_best(&initial_state, &mut HashMap::new(), 0);
+        let score = self.find_best(&initial_state, &mut HashMap::new(), 0, false);
         if score >= 2815 { println!("SCORE TOO HIGH!");}
         score.to_string()
     }
 }
 
 impl Day16 {
-    fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>, mut best: u32) -> u32 {
+    fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>, mut best: u32, add_one_turn: bool) -> u32 {
         if let Some(cached) = cache.get(from) {
             return *cached;
         }
@@ -81,42 +82,23 @@ impl Day16 {
         let me_choices = Self::get_choices(me_valve, &from.active_ids, from.time_left, from.me_travel);
         let el_choices = Self::get_choices(el_valve, &from.active_ids, from.time_left, from.elephant_travel);
         
-        let children = if me_choices.is_empty() {
-            println!("In Here");
-            el_choices.iter().filter_map(|el_choice| from.apply_choices(Choice::DoNothing, el_choice.clone())).collect::<Vec<_>>()
-        } else if el_choices.is_empty() {
-            println!("In There");
-            me_choices.iter().filter_map(|me_choice| from.apply_choices(me_choice.clone(), Choice::DoNothing)).collect::<Vec<_>>()
-        } else {
-            me_choices.iter()
+        // Cross product of my options and the elephant's
+        let children = me_choices.iter()
             .flat_map(|me_choice| el_choices.iter().map(move |el_choice| (me_choice, el_choice))) // Yields all choice combinations
             .filter_map(|(me_choice, el_choice)| {
                 from.apply_choices(me_choice.clone(), el_choice.clone())
             }) // Turn those choices into a state
-            .collect::<Vec<_>>()
-        };
-
-        // println!("My choices...");
-        // for c in &me_choices { println!("  {c:?}");}
-
-        // println!("Elephant choices...");
-        // for c in &el_choices { println!("  {c:?}");}
-
-        //  println!("Combinations: ");
-        //  for child in &children {
-        //      println!("  {child:?}");
-        //  }
+            .collect::<Vec<_>>();
 
         if children.is_empty() {
             cache.insert(from.clone(), from.score);
-            //println!("{score}, {} scores evaluated...", cache.len());
             return from.score;
         } else {
             // Filter out states that couldn't possibly increase our current best
             let mut score = 0;
             for state in &children {
-                if state.potential_score(&self.valves) > best {
-                    score = u32::max(score, self.find_best(state, cache, best));
+                if state.potential_score(&self.valves, add_one_turn) > best {
+                    score = u32::max(score, self.find_best(state, cache, best, add_one_turn));
                     best = u32::max(best, score);
                 }
             } 
@@ -149,6 +131,9 @@ impl Day16 {
                 next_key = "INVALID - WONT FIND IN WHILE LET ABOVE".to_string();
             }
         }
+
+        let mut valves = self.valves.values().collect::<Vec<_>>();
+        valves.sort_by_key(|v| &v.id);
     }
 
     fn get_choices(current_valve: &Valve, active_ids: &HashSet<String>, time_left: u32, travel_time: u32) -> Vec<Choice> {
@@ -219,7 +204,6 @@ impl State {
         if let Choice::Activate(ref v, _) = me_choice {
             if let Choice::Activate(ref v2, _) = elephant_choice {
                 if v == v2 {
-                    // println!("Preventing double opening {v} - {v2}");
                     return None;
                 }
             }
@@ -298,17 +282,15 @@ impl State {
         }
     }
 
-    fn potential_score(&self, valves: &HashMap<String, Valve>) -> u32 {
+    fn potential_score(&self, valves: &HashMap<String, Valve>, add_one_turn: bool) -> u32 {
         // We can put a cap on the potential score by imagining that we can turn on the remaining valves in the shortest possible time
         let mut score = self.score;
-        let mut sim_time_left = self.time_left;
+        // I have no idea why... but this is required for part1, and makes part 2 a LOT slower
+        let mut sim_time_left = self.time_left + if add_one_turn { 1 } else { 0 };
         let mut valves: Vec<_> = valves.values().filter(|v| !self.active_ids.contains(&v.id)).collect();
-        // for v in &valves { println!("{v}")}
+
         valves.sort_by(|a, b| b.rate.cmp(&a.rate));
-        // println!("--");
-        // for v in &valves { println!("{v}")}
-        // println!("--");
-        // println!("  ");
+
         for v in valves {
             score += v.rate * sim_time_left;
             sim_time_left -= 1;
