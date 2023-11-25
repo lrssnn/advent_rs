@@ -66,57 +66,26 @@ impl Day for Day16 {
 
 impl Day16 {
     fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>, mut best: u32) -> u32 {
-        // println!("Evaluating...");
-        // println!("{from:?}");
-        // let mut buf = String::new();
-        // std::io::stdin().read_line(&mut buf);
         if let Some(cached) = cache.get(from) {
-            // println!("cached: {cached}");
             return *cached;
         }
 
         let me_valve = self.valves.get(&from.me_at).unwrap();
         let el_valve = self.valves.get(&from.elephant_at).unwrap();
 
-        // println!("me_valve: {me_valve}");
-        // println!("el_valve: {el_valve}");
-
-        // Check for terminal state:
-        let min_time_me = me_valve.paths.iter().map(|path| path.1).min().unwrap();
-        let min_time_el = el_valve.paths.iter().map(|path| path.1).min().unwrap();
-
-        // println!("min_time_me: {min_time_me}");
-        // println!("min_time_el: {min_time_el}");
-
-        if (from.time_left < min_time_me && from.time_left < min_time_el) /*|| self.valves.len() == from.active_ids.len()*/ {
-            //println!("Terminal state..");
-            // if we have time, we should turn on this valve. Hacky
-            let mut score = from.score;
-            /*
-            let mut didThat = false;
-            if from.time_left > 0 && !from.active_ids.contains(&from.me_at) {
-                //println!("Me turning on one last valve...");
-                score += me_valve.rate * from.time_left;
-                didThat = true;
-            } else if from.time_left > 0 && !from.active_ids.contains(&from.elephant_at) {
-                //println!("El turning on one last valve...");
-                score += el_valve.rate * from.time_left;
-                if didThat {
-                    println!("EMERGENCY!");
-                }
-            }
-            */
-            cache.insert(from.clone(), score);
-            //println!("{score}, {} scores evaluated...", cache.len());
-            return score;
+        if from.time_left == 0 {
+            cache.insert(from.clone(), from.score);
+            return from.score;
         }
 
         let me_choices = Self::get_choices(me_valve, &from.active_ids, from.time_left, from.me_travel);
         let el_choices = Self::get_choices(el_valve, &from.active_ids, from.time_left, from.elephant_travel);
         
         let children = if me_choices.is_empty() {
+            println!("In Here");
             el_choices.iter().filter_map(|el_choice| from.apply_choices(Choice::DoNothing, el_choice.clone())).collect::<Vec<_>>()
         } else if el_choices.is_empty() {
+            println!("In There");
             me_choices.iter().filter_map(|me_choice| from.apply_choices(me_choice.clone(), Choice::DoNothing)).collect::<Vec<_>>()
         } else {
             me_choices.iter()
@@ -138,16 +107,22 @@ impl Day16 {
         //      println!("  {child:?}");
         //  }
 
-        // Filter out states that couldn't possibly increase our current best
-        let mut score = 0;
-        for state in &children {
-            if state.potential_score(&self.valves) > best {
-                score = u32::max(score, self.find_best(state, cache, best));
-                best = u32::max(best, score);
-            }
-        } 
-        cache.insert(from.clone(), score);
-        score
+        if children.is_empty() {
+            cache.insert(from.clone(), from.score);
+            //println!("{score}, {} scores evaluated...", cache.len());
+            return from.score;
+        } else {
+            // Filter out states that couldn't possibly increase our current best
+            let mut score = 0;
+            for state in &children {
+                if state.potential_score(&self.valves) > best {
+                    score = u32::max(score, self.find_best(state, cache, best));
+                    best = u32::max(best, score);
+                }
+            } 
+            cache.insert(from.clone(), score);
+            score
+        }
     }
 
     fn consolidate_zero_rate_valves(&mut self) {
@@ -178,7 +153,7 @@ impl Day16 {
 
     fn get_choices(current_valve: &Valve, active_ids: &HashSet<String>, time_left: u32, travel_time: u32) -> Vec<Choice> {
         if travel_time > 0 {
-            return vec![Choice::DoNothing];
+            return vec![Choice::Travel];
         } 
 
         // Switch on a valve?
@@ -189,9 +164,13 @@ impl Day16 {
 
         // Move?
         for destination in &current_valve.paths {
-            if destination.1 <= time_left {
+            if destination.1 < time_left {
                 choices.push(Choice::Move(destination.clone()));
             }
+        }
+
+        if choices.is_empty() {
+            choices.push(Choice::DoNothing);
         }
 
         choices
@@ -228,6 +207,7 @@ impl Hash for State {
 enum Choice {
     Activate(String, u32),
     Move(Path),
+    Travel,
     DoNothing,
 }
 
@@ -235,12 +215,20 @@ type Path = (String, u32);
 
 impl State {
     fn apply_choices(&self, me_choice: Choice, elephant_choice: Choice) -> Option<State> {
+        // Do not turn on the same valve at the same time
         if let Choice::Activate(ref v, _) = me_choice {
             if let Choice::Activate(ref v2, _) = elephant_choice {
                 if v == v2 {
                     // println!("Preventing double opening {v} - {v2}");
                     return None;
                 }
+            }
+        }
+
+        // Do not both do nothing
+        if let Choice::DoNothing = me_choice {
+            if let Choice::DoNothing = elephant_choice {
+                return None;
             }
         }
 
@@ -269,7 +257,7 @@ impl State {
                     ..self.clone()
                 }
             },
-            Choice::DoNothing => {
+            Choice::Travel | Choice::DoNothing => {
                 self.clone()
             }
         }
@@ -295,7 +283,7 @@ impl State {
                     ..self.clone()
                 }
             },
-            Choice::DoNothing => {
+            Choice::Travel | Choice::DoNothing => {
                 self.clone()
             }
         }
