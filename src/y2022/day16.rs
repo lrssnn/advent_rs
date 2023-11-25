@@ -4,7 +4,7 @@ use super::super::day::Day;
 
 pub struct Day16
 {
-    valves: HashMap<String, Valve>,
+    valves: Vec<Valve>,
 }
 
 impl Day16 {
@@ -13,13 +13,14 @@ impl Day16 {
         let input = include_str!("input16");
         //let input = include_str!("input16_example");
 
-        let valves = input.trim().split('\n')
-            .map(|line| {
-                let v = Valve::from_str(line);
-                (v.id.to_string(), v)
-            }).collect::<HashMap<_,_>>();
+        let mut valves = input.trim().split('\n')
+            .map(ValveString::from_str)
+            .collect::<Vec<_>>();
 
-        Day16 { valves }
+        // We rely on "AA" being first, technically this is more work than we need to do
+        valves.sort_by_key(|v| v.id.to_string());
+
+        Day16 { valves: Valve::from_valve_strings(&valves) }
     }
 }
 
@@ -34,8 +35,8 @@ impl Day for Day16 {
         self.consolidate_zero_rate_valves();
 
         let initial_state = State {
-            me_at: "AA".to_string(),
-            elephant_at: "AA".to_string(),
+            me_at: 0,
+            elephant_at: 0,
             me_travel: 0,
             elephant_travel: 50, // This means the elephant isn't going to do anything
 
@@ -49,8 +50,8 @@ impl Day for Day16 {
     #[allow(unreachable_code)]
     fn part2(&mut self) -> String {
         let initial_state = State {
-            me_at: "AA".to_string(),
-            elephant_at: "AA".to_string(),
+            me_at: 0,
+            elephant_at: 0,
             me_travel: 0,
             elephant_travel: 0,
 
@@ -66,13 +67,13 @@ impl Day for Day16 {
 }
 
 impl Day16 {
-    fn find_best(&self, from: &State, cache: &mut HashMap<State, u32>, mut best: u32, add_one_turn: bool) -> u32 {
+    fn find_best(&self, from: &State, cache: &mut HashMap<State, u16>, mut best: u16, add_one_turn: bool) -> u16 {
         if let Some(cached) = cache.get(from) {
             return *cached;
         }
 
-        let me_valve = self.valves.get(&from.me_at).unwrap();
-        let el_valve = self.valves.get(&from.elephant_at).unwrap();
+        let me_valve = self.valves.iter().find(|v| v.id == from.me_at).unwrap();
+        let el_valve = self.valves.iter().find(|v| v.id == from.elephant_at).unwrap();
 
         if from.time_left == 0 {
             cache.insert(from.clone(), from.score);
@@ -92,14 +93,15 @@ impl Day16 {
 
         if children.is_empty() {
             cache.insert(from.clone(), from.score);
-            return from.score;
+            cache.insert(from.clone(), from.score);
+            from.score
         } else {
             // Filter out states that couldn't possibly increase our current best
             let mut score = 0;
             for state in &children {
                 if state.potential_score(&self.valves, add_one_turn) > best {
-                    score = u32::max(score, self.find_best(state, cache, best, add_one_turn));
-                    best = u32::max(best, score);
+                    score = u16::max(score, self.find_best(state, cache, best, add_one_turn));
+                    best = u16::max(best, score);
                 }
             } 
             cache.insert(from.clone(), score);
@@ -108,16 +110,19 @@ impl Day16 {
     }
 
     fn consolidate_zero_rate_valves(&mut self) {
-        let mut next_key = self.valves.values().find(|v| v.rate == 0 && v.id.ne("AA")).unwrap().id.to_string();
-        while let Some(dead_valve) = self.valves.remove(&next_key) {
+        let mut map = self.valves.iter().map(|v| (v.id, v.clone())).collect::<HashMap<_,_>>();
+
+        let mut next_key = map.values().find(|v| v.rate == 0 && v.id != 0).unwrap().id;
+
+        while let Some(dead_valve) = map.remove(&next_key) {
             // For each place this valve can go, replace that one's path to here with paths to this one's other places
 
             for (other_id, dead_other) in &dead_valve.paths {
-                let other = self.valves.get_mut(other_id).unwrap();
+                let other = map.get_mut(other_id).unwrap();
 
                 for (dest_id, dead_dest) in &dead_valve.paths {
-                    if dest_id.ne(&other.id) {
-                        other.paths.push((dest_id.to_string(), dead_other + dead_dest));
+                    if *dest_id != other.id {
+                        other.paths.push((*dest_id, dead_other + dead_dest));
                     }
                 }
 
@@ -125,18 +130,18 @@ impl Day16 {
                 other.paths.remove(remove_index);
             }
 
-            if let Some(next_valve) = self.valves.values().find(|v| v.rate == 0 && v.id.ne("AA")) {
-                next_key = next_valve.id.to_string();
+            if let Some(next_valve) = map.values().find(|v| v.rate == 0 && v.id != 0) {
+                next_key = next_valve.id;
             } else {
-                next_key = "INVALID - WONT FIND IN WHILE LET ABOVE".to_string();
+                break;
             }
         }
 
-        let mut valves = self.valves.values().collect::<Vec<_>>();
-        valves.sort_by_key(|v| &v.id);
+        let valves = map.values().cloned().collect::<Vec<_>>();
+        self.valves = valves;
     }
 
-    fn get_choices(current_valve: &Valve, active_ids: &HashSet<String>, time_left: u32, travel_time: u32) -> Vec<Choice> {
+    fn get_choices(current_valve: &Valve, active_ids: &HashSet<u8>, time_left: u8, travel_time: u8) -> Vec<Choice> {
         if travel_time > 0 {
             return vec![Choice::Travel];
         } 
@@ -144,13 +149,13 @@ impl Day16 {
         // Switch on a valve?
         let mut choices = vec![];
         if current_valve.rate > 0 && !active_ids.contains(&current_valve.id) {
-            choices.push(Choice::Activate(current_valve.id.clone(), current_valve.rate));
+            choices.push(Choice::Activate(current_valve.id, current_valve.rate));
         }
 
         // Move?
         for destination in &current_valve.paths {
             if destination.1 < time_left {
-                choices.push(Choice::Move(destination.clone()));
+                choices.push(Choice::Move(*destination));
             }
         }
 
@@ -164,14 +169,14 @@ impl Day16 {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct State {
-    me_at: String,
-    elephant_at: String,
-    me_travel: u32,
-    elephant_travel: u32,
+    me_at: u8,
+    elephant_at: u8,
+    me_travel: u8,
+    elephant_travel: u8,
 
-    time_left: u32,
-    score: u32,
-    active_ids: HashSet<String>,
+    time_left: u8,
+    score: u16,
+    active_ids: HashSet<u8>,
 }
 
 impl Hash for State {
@@ -181,7 +186,7 @@ impl Hash for State {
         self.me_travel.hash(state);
         self.elephant_travel.hash(state);
         self.time_left.hash(state);
-        let mut vec = self.active_ids.iter().collect::<Vec<&String>>();
+        let mut vec = self.active_ids.iter().collect::<Vec<&u8>>();
         vec.sort();
         vec.hash(state);
     }
@@ -190,13 +195,13 @@ impl Hash for State {
 #[derive(Clone, Debug)]
 #[derive(PartialEq)]
 enum Choice {
-    Activate(String, u32),
+    Activate(u8, u8),
     Move(Path),
     Travel,
     DoNothing,
 }
 
-type Path = (String, u32);
+type Path = (u8, u8);
 
 impl State {
     fn apply_choices(&self, me_choice: Choice, elephant_choice: Choice) -> Option<State> {
@@ -228,7 +233,7 @@ impl State {
                 active_ids.insert(valve);
                 State {
                     active_ids,
-                    score: self.score + (rate * self.time_left),
+                    score: self.score + (rate as u16 * self.time_left as u16),
                     ..self.clone()
                 }
             }
@@ -254,7 +259,7 @@ impl State {
                 active_ids.insert(valve);
                 State {
                     active_ids,
-                    score: self.score + (rate * self.time_left),
+                    score: self.score + (rate as u16 * self.time_left as u16),
                     ..self.clone()
                 }
             }
@@ -282,41 +287,42 @@ impl State {
         }
     }
 
-    fn potential_score(&self, valves: &HashMap<String, Valve>, add_one_turn: bool) -> u32 {
+    fn potential_score(&self, valves: &[Valve], add_one_turn: bool) -> u16 {
         // We can put a cap on the potential score by imagining that we can turn on the remaining valves in the shortest possible time
         let mut score = self.score;
         // I have no idea why... but this is required for part1, and makes part 2 a LOT slower
         let mut sim_time_left = self.time_left + if add_one_turn { 1 } else { 0 };
-        let mut valves: Vec<_> = valves.values().filter(|v| !self.active_ids.contains(&v.id)).collect();
+        let mut valves: Vec<_> = valves.iter().filter(|v| !self.active_ids.contains(&v.id)).collect();
 
         valves.sort_by(|a, b| b.rate.cmp(&a.rate));
 
         for v in valves {
-            score += v.rate * sim_time_left;
+            score += v.rate as u16 * sim_time_left as u16;
             sim_time_left -= 1;
             if sim_time_left == 0 {
                 return score;
             }
         }
         score
-
-        // let mut score = self.score;
-        // for valve in valves.values().filter(|v| !self.active_ids.contains(&v.id)) {
-        //     score += valve.rate * self.time_left;
-        // }
-        // score
     }
 }
 
 #[derive(Debug, Clone)]
-struct Valve {
+struct ValveString {
     id: String,
-    rate: u32,
-    paths: Vec<(String, u32)>,
+    rate: u8,
+    paths: Vec<(String, u8)>,
 }
 
-impl Valve {
-    fn from_str(input: &str) -> Valve {
+#[derive(Debug, Clone)]
+struct Valve {
+    id: u8,
+    rate: u8,
+    paths: Vec<(u8, u8)>,
+}
+
+impl ValveString {
+    fn from_str(input: &str) -> ValveString {
         let mut parts = input.split("valves ").collect::<Vec<_>>();
         if parts.len() == 1 {
             // single valve
@@ -326,15 +332,37 @@ impl Valve {
         let parts = parts[0].split(' ').collect::<Vec<_>>();
         let id = parts[1].to_string();
         let rate_s = parts[4];
-        let rate = rate_s[5..rate_s.len()-1].parse::<u32>().unwrap();
-        Valve { id, rate, paths }
+        let rate = rate_s[5..rate_s.len()-1].parse::<u8>().unwrap();
+        ValveString { id, rate, paths }
+    }
+}
+
+impl Valve {
+    fn from_valve_strings(input: &[ValveString]) -> Vec<Valve> {
+        // Determine mapping from string id to int id
+        assert!(input[0].id.eq("AA"));
+        let string_to_u8 = input.iter()
+            .enumerate()
+            .map(|(i, valve)| (valve.id.to_string(), i as u8))
+            .collect::<HashMap<String, u8>>();
+
+        input.iter().map(|v| Valve::from_valve_string(v, &string_to_u8)).collect()
+    }
+
+    fn from_valve_string(input: &ValveString, id_map: &HashMap<String, u8>) -> Valve {
+        let paths = input.paths.iter().map(|(id_str, cost)| (*id_map.get(id_str).unwrap(), *cost)).collect::<Vec<_>>();
+        Valve {
+            id: *id_map.get(&input.id).unwrap(),
+            rate: input.rate,
+            paths
+        }
     }
 }
 
 impl Display for Valve {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:02} ({}) -> {}", self.id, self.rate,
-            self.paths.iter().fold("".to_string(), |acc, x| acc + &x.1.to_string() + ": " + &x.0 + ",")
+            self.paths.iter().fold("".to_string(), |acc, x| acc + &x.1.to_string() + ": " + &x.0.to_string() + ",")
         )
     }
 }
