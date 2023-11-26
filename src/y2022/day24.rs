@@ -13,7 +13,7 @@ const WIDTH: u8 = 100;
 //const WIDTH: u8 = 6;
 
 const CYCLE: usize = HEIGHT as usize * WIDTH as usize;
-const TARGET: Coord<u8> = Coord { x: WIDTH, y: HEIGHT}; // Target the cell above, the rules treat the actual target as a wall
+const TARGET: Coord<u8> = Coord { x: WIDTH, y: HEIGHT + 1}; // Target the cell above, the rules treat the actual target as a wall
 const START: Coord<u8> = Coord { x: 1, y: 0 };
 
 pub struct Day24
@@ -45,7 +45,7 @@ impl Day24 {
 impl Day for Day24 {
     fn day_name(&self) -> String { String::from("24") }
     fn answer1(&self) -> String { String::from("249") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("735") }
 
     fn part1(&mut self) -> String {
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
@@ -59,60 +59,56 @@ impl Day for Day24 {
             is_desired_state, 
             usize::MAX
         ).unwrap();
-        shortest_path.len().to_string()
+        shortest_path.last().unwrap().timestamp.to_string()
     }
 
     fn part2(&mut self) -> String {
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
         let get_next_states = | s: &State | s.next_states(&mut blizzards);
         let initial_state = State { player: START, timestamp: 0 };
-        let heuristic = | s: &State | {
-            let h = (s.player.x.abs_diff(WIDTH) + s.player.y.abs_diff(HEIGHT)) as usize;
-            println!("Heuristic for {} = {}", s.player, h);
-            h
-        };
-        let heuristic_reverse = | s: &State | {
-            let h = (s.player.x.abs_diff(1) + s.player.y) as usize;
-            println!("H reverse of {} = {}", s.player, h);
-            h
-        };
-        let is_end_state = | s: &State | s.player == TARGET;
-        let is_start_state = | s: &State | {
-            let winner = s.player == START;
-            println!("Is {} a winner? {winner}", s.player);
-            winner
-        };
 
-        let start_to_end = astar_search(&initial_state, 
+        let heuristic =         | s: &State | (s.player.x.abs_diff(TARGET.x) + s.player.y.abs_diff(TARGET.y)) as usize;
+        let heuristic_reverse = | s: &State | (s.player.x.abs_diff(START.x)  + s.player.y.abs_diff(START.y))  as usize;
+
+        let is_end_state   = | s: &State | s.player == TARGET;
+        let is_start_state = | s: &State | s.player == START;
+
+        let start_to_end_path = astar_search(&initial_state, 
             heuristic,
             get_next_states, 
             is_end_state, 
-            usize::MAX
-        ).unwrap().len();
+            1000
+        ).unwrap();
 
-        let end_state = State { player: TARGET, timestamp: start_to_end };
+        let start_to_end_ts = start_to_end_path[start_to_end_path.len() - 1].timestamp;
+        
+        let end_state = State { player: TARGET, timestamp: start_to_end_ts };
+
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
+
         let get_next_states = | s: &State | s.next_states(&mut blizzards);
-        let end_to_start = astar_search(&end_state, 
+        let end_to_start_path = astar_search(&end_state, 
             heuristic_reverse,
             get_next_states, 
             is_start_state, 
-            usize::MAX
-        ).unwrap().len();
+            1000
+        ).unwrap();
 
-        let restart_state = State { player: START, timestamp: start_to_end + end_to_start };
+        let end_to_start_ts = end_to_start_path[end_to_start_path.len() - 1].timestamp;
+
+        let restart_state = State { player: START, timestamp: end_to_start_ts };
         let mut blizzards = BlizzardContainer::new(self.blizzards.clone());
         let get_next_states = | s: &State | s.next_states(&mut blizzards);
-        let start_to_end_2 = astar_search(&restart_state, 
+        let start_to_end_2_path = astar_search(&restart_state, 
             heuristic,
             get_next_states, 
             is_end_state, 
-            usize::MAX
-        ).unwrap().len();
+            1000
+        ).unwrap();
 
-        let total = start_to_end + end_to_start + start_to_end_2;
-        println!("{start_to_end} + {end_to_start} + {start_to_end_2} = {total}");
-        total.to_string()
+        let start_to_end_2_ts = start_to_end_2_path[start_to_end_2_path.len() - 1].timestamp;
+
+        start_to_end_2_ts.to_string()
     }
 }
 
@@ -132,21 +128,12 @@ impl State {
             .filter_map(|dir| self.try_move(dir, &next_blizzards))
             .collect();
 
-        /*
-        println!("From...\n");
-        self._print(blizzards);
-        println!("To...\n");
-        for s in &moves {
-            s._print(blizzards);
-            println!();
-        }
-        */
         moves
     }
 
     fn try_move(&self, dir: &Direction, blizzards: &[Blizzard]) -> Option<State> {
         let proposed = self.player + *dir;
-        if proposed != START && (proposed.x == 0 || proposed.y == 0 || proposed.x == WIDTH + 1 || proposed.y == HEIGHT + 1) { return None; }
+        if proposed != START && proposed != TARGET && (proposed.x == 0 || proposed.y == 0 || proposed.x == WIDTH + 1 || proposed.y == HEIGHT + 1) { return None; }
         if blizzards.iter().all(|blizz| blizz.loc != proposed) {
             let new_state = State { player: proposed, timestamp: self.timestamp + 1 };
             Some(new_state)
