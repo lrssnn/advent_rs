@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::HashMap, iter, hash::{Hash, Hasher}};
+﻿use std::{fmt::Display, collections::HashMap, iter, hash::Hash};
 
 use super::super::day::Day;
 
@@ -46,7 +46,7 @@ impl Day for Day16 {
             score: 0,
             active_ids: 0,
         };
-        self.find_best(&initial_state, &mut HashMap::new(), 0, true).to_string()
+        self.find_best(&initial_state, &mut HashMap::new(), 0).to_string()
     }
 
     #[allow(unreachable_code)]
@@ -62,14 +62,14 @@ impl Day for Day16 {
             score: 0,
             active_ids: 0,
         };
-        let score = self.find_best(&initial_state, &mut HashMap::new(), 0, false);
+        let score = self.find_best(&initial_state, &mut HashMap::new(), 0);
         if score >= 2815 { println!("SCORE TOO HIGH!");}
         score.to_string()
     }
 }
 
 impl Day16 {
-    fn find_best(&self, from: &State, cache: &mut HashMap<State, u16>, mut best: u16, add_one_turn: bool) -> u16 {
+    fn find_best(&self, from: &State, cache: &mut HashMap<State, u16>, mut best: u16) -> u16 {
         if let Some(cached) = cache.get(from) {
             return *cached;
         }
@@ -99,8 +99,8 @@ impl Day16 {
             // Filter out states that couldn't possibly increase our current best
             let mut score = 0;
             for state in &children {
-                if state.potential_score(&self.valves, add_one_turn) > best {
-                    score = u16::max(score, self.find_best(state, cache, best, add_one_turn));
+                if state.potential_score(&self.valves) > best {
+                    score = u16::max(score, self.find_best(state, cache, best));
                     best = u16::max(best, score);
                 }
             } 
@@ -181,7 +181,7 @@ impl Day16 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct State {
     me_at: u8,
     elephant_at: u8,
@@ -191,17 +191,6 @@ struct State {
     time_left: u8,
     score: u16,
     active_ids: ActiveIds,
-}
-
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.me_at.hash(state);
-        self.elephant_at.hash(state);
-        self.me_travel.hash(state);
-        self.elephant_travel.hash(state);
-        self.time_left.hash(state);
-        self.active_ids.hash(state);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -296,11 +285,10 @@ impl State {
         }
     }
 
-    fn potential_score(&self, valves: &[Valve], add_one_turn: bool) -> u16 {
+    fn potential_score(&self, valves: &[Valve]) -> u16 {
         // We can put a cap on the potential score by imagining that we can turn on the remaining valves in the shortest possible time
         let mut score = self.score;
-        // I have no idea why... but this is required for part1, and makes part 2 a LOT slower
-        let mut sim_time_left = self.time_left + if add_one_turn { 1 } else { 0 };
+        let mut sim_time_left = self.time_left;
         let mut valves: Vec<_> = valves.iter().filter(|v| !Day16::is_active(self.active_ids, v.id)).collect();
 
         valves.sort_by(|a, b| b.rate.cmp(&a.rate));
