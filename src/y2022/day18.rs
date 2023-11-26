@@ -1,4 +1,4 @@
-﻿use std::{fmt::Display, collections::VecDeque};
+﻿use std::{fmt::Display, collections::HashSet};
 
 use super::super::day::Day;
 
@@ -19,12 +19,19 @@ impl Day18 {
 
         Day18 { cubes, air_cubes: None }
     }
+
+    fn lies_within(neighbour: Cube, min_x: i32, min_y: i32, min_z: i32, max_x: i32, max_y: i32, max_z: i32) -> bool {
+        neighbour.x >= min_x && neighbour.x <= max_x &&
+        neighbour.y >= min_y && neighbour.y <= max_y &&
+        neighbour.z >= min_z && neighbour.z <= max_z
+    }
+
 }
 
 impl Day for Day18 {
     fn day_name(&self) -> String { String::from("18") }
     fn answer1(&self) -> String { String::from("3466") }
-    fn answer2(&self) -> String { String::from("?") }
+    fn answer2(&self) -> String { String::from("2012") }
 
     fn part1(&mut self) -> String {
         let air_cubes: Vec<Cube> = self.cubes.iter()
@@ -39,72 +46,46 @@ impl Day for Day18 {
     }
 
     fn part2(&mut self) -> String {
-        let air_cubes = self.air_cubes.as_ref().unwrap();
+        // Strategy: Flood fill from a known outside point, counting the amount of times we touch the structure
+        let known_air = self.air_cubes.as_ref().unwrap().iter().min_by_key(|c| c.x).unwrap();
+        let mut to_process = Vec::new();
+        let mut seen = HashSet::new();
 
-        let mut contained_air: Vec<Cube> = air_cubes.iter()
-            .filter(|cube| cube.neighbours().iter()
-                .all(|n| self.cubes.contains(n) || air_cubes.contains(n))
-            ).copied().collect();
+        to_process.push(*known_air);
 
-        contained_air.dedup();
-        
+        let mut surface_area = 0;
 
-        //println!("{} contained cubes", contained_air.len());
-        
+        // Anything outside these bounds cannot possibly contribute
+        let min_x = self.cubes.iter().min_by_key(|c| c.x).unwrap().x - 1;
+        let min_y = self.cubes.iter().min_by_key(|c| c.y).unwrap().y - 1;
+        let min_z = self.cubes.iter().min_by_key(|c| c.z).unwrap().z - 1;
+        let max_x = self.cubes.iter().max_by_key(|c| c.x).unwrap().x + 1;
+        let max_y = self.cubes.iter().max_by_key(|c| c.y).unwrap().y + 1;
+        let max_z = self.cubes.iter().max_by_key(|c| c.z).unwrap().z + 1;
 
-        // we need to remove any interior cubes. To do that, grab all the air cubes that can
-        // see at least one cube that is not contained in the air_cubes or the cubes themselves
-        // This should mean they can see the outer air. If we have (for example) a 3x3 contained inside the shape, then it won't work
-        /*
-        let exterior_cubes: Vec<Cube> = air_cubes.iter()
-            .filter(|cube| cube.neighbours().iter()
-                .any(|n| !self.cubes.contains(n) && !air_cubes.contains(n))
-            ).copied().collect(); 
-            */
-
-        // Find a cube that's definitley on the outside of the shape. This is sufficient
-        /*
-        let min_x = air_cubes.iter().min_by_key(|c| c.x).unwrap();
-        let reachable = Self::reachable(&mut self.cubes, min_x);
-        */
-
-
-        // I think there could be air pockets of more than size one that will still be in here.
-        // filter them out by looking for neighbours that are in the list
-
-        /*
-        let exterior_surface_area: usize = exterior_cubes.iter()
-            .filter(|cube| cube.neighbours().iter()
-                .all(|n| !exterior_cubes.contains(n)))
-                */
-
-        (air_cubes.len() - contained_air.len()).to_string()
-    }
-}
-
-impl Day18 {
-    #![allow(dead_code)]
-    fn reachable(cubes: &[Cube], seed: &Cube) -> Vec<Cube> {
-        let mut result = Vec::new();
-
-        let mut queue = VecDeque::new();
-        queue.push_back(*seed);
-
-        while !queue.is_empty() {
-            let current = queue.pop_front().unwrap();
-            result.push(current);
-            for neighbour in current.neighbours() {
-                if cubes.contains(&neighbour) && !queue.contains(&neighbour) && !result.contains(&neighbour) {
-                    queue.push_back(neighbour);
+        while let Some(processing) = to_process.pop() {
+            seen.insert(processing);
+            for neighbour in processing.neighbours() {
+                // If this neighbour touches the droplet, count the cooling power
+                if self.cubes.contains(&neighbour) {
+                    surface_area += 1;
+                    continue;
+                }
+                // We know its air, add it to the processing queue IF there is any point
+                if !seen.contains(&neighbour) // Don't process one square more than once
+                    && !to_process.contains(&neighbour) // Don't queue one square more than once
+                    && Self::lies_within(neighbour, min_x, min_y, min_z, max_x, max_y, max_z) { // Don't walk away from the droplet
+                    to_process.push(neighbour);
                 }
             }
         }
-        
-        result
+
+        surface_area.to_string()
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash)]
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Ord, PartialOrd)]
 struct Cube {
     x: i32,
     y: i32,
