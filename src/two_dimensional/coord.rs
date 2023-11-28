@@ -41,6 +41,18 @@ where isize: From<T>, T: TryFrom<isize> {
     type Output = Self;
 }
 
+impl<T> Add<Coord<T>> for Coord<T> 
+where isize: From<T>, T: TryFrom<isize> + std::ops::Add<Output = T> {
+    fn add(self, rhs: Coord<T>) -> Self {
+        Coord{
+            x: self.x + rhs.x,
+            y: self.y + rhs.y
+        }
+    }
+
+    type Output = Self;
+}
+
 impl<T> Add<(isize, isize)> for Coord<T> 
 where isize: From<T>, T: TryFrom<isize> {
     fn add(self, rhs: (isize, isize)) -> Self {

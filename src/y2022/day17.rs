@@ -1,234 +1,121 @@
-﻿use std::collections::HashMap;
+﻿use std::collections::hash_map::Entry::Vacant;
+use std::collections::{HashMap, HashSet};
+
+use crate::two_dimensional::coord::Coord as CoordGeneric;
 
 use super::super::day::Day;
 
+const OUCH: usize = 1_000_000_000_000;
+type Coord = CoordGeneric<isize>;
+
 pub struct Day17
 {
-    chamber: Chamber,
+    jets: Vec<char>,
 }
 
 impl Day17 {
     pub fn new() -> Day17
     {
         let input = include_str!("input17");
-        //let input = include_str!("2022-17.txt"); // Uncle Scientist's
         //let input = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
 
-        let chamber = Chamber::new(input.chars().collect());
-
-        Day17 { chamber }
+        Day17 { jets: input.chars().collect() }
     }
 }
 
 impl Day for Day17 {
     fn day_name(&self) -> String { String::from("17") }
-    //fn answer1(&self) -> String { String::from("3085") }
-    //fn answer2(&self) -> String { String::from("?") }
-    fn answer1(&self) -> String { String::from("3068") } // Example
-    //fn answer2(&self) -> String { String::from("1514285714288") } // Example
-    fn answer2(&self) -> String { String::from("1582758620701") } // Uncle's
+    fn answer1(&self) -> String { String::from("3085") }
+    fn answer2(&self) -> String { String::from("1535483870924") } // Obtained from someone else's code on my input
 
     fn part1(&mut self) -> String {
-        let mut part1 = self.chamber.clone();
-
-        for _ in 0..2022 {
-            part1.drop_one();
-        }
-
-        part1.height().to_string()
+        simulate(2023, &self.jets).to_string()
     }
 
     fn part2(&mut self) -> String {
-        let mut part2 = self.chamber.clone();
-
-        // state will be: current piece number, current jet index, top 4 rows of chamber
-        // if we get a repeat, then we found a cycle
-        //      -- delta_height: height from previous cycle to this one
-        //      -- delta_drops: how many drops were needed to get to delta_height
-        //      -- offset_height: how high the tower was when the cycle began for the first time
-        //      -- offset_drops: how many drops it took to get to offset_height
-
-        let mut cycle_finder = HashMap::new();
-
-        // map state to (height, drops)
-        cycle_finder.insert((part2.piecenum, part2.jetnum, 0u64), (0usize, 0usize));
-
-        let mut drops = 0;
-        loop {
-            part2.drop_one();
-            drops += 1;
-            let height = part2.height();
-            if height < 4 {
-                continue;
-            }
-
-            let shape = ((part2.rocks[height - 1] as usize) << 24)
-                | ((part2.rocks[height - 2] as usize) << 16)
-                | ((part2.rocks[height - 3] as usize) << 8)
-                | (part2.rocks[height - 4] as usize);
-
-            let skyline = u64::from_ne_bytes(part2.rocks[part2.rocks.len() - 8..].try_into().unwrap());
-
-            if let Some(entry) = cycle_finder.get(&(part2.piecenum, part2.jetnum, skyline)) {
-                println!("piece = {}", part2.piecenum);
-                println!("jetnum = {}", part2.jetnum);
-                println!("shape = {}", shape);
-
-                println!("drops until start of loop = {}", entry.1);
-                println!("height of tower when the loop started = {}", entry.0);
-                let delta_height = height - entry.0;
-                let delta_drops = drops - entry.1;
-                println!(
-                "There is an increase of {delta_height} rows for every {delta_drops} drops"
-                );
-                let remaining_drops = Chamber::OUCH - entry.1;
-                println!("There are still {remaining_drops} left to go");
-
-                let needed_drops = remaining_drops / delta_drops;
-                let leftover_drops = remaining_drops % delta_drops;
-                let integral_height = entry.0 + delta_height * needed_drops;
-
-                println!(
-                "The height will reach {integral_height} but there are still {leftover_drops} drops left"
-                );
-
-                for _ in 0..leftover_drops {
-                    part2.drop_one();
-                }
-                let leftover_height = part2.height() - height;
-                println!("After {leftover_drops} more drops, we added {leftover_height} rows");
-                let answer = integral_height + leftover_height;
-                if answer == 1514534883742 { println!("Known bad answer!!!\n");}
-
-                return (answer).to_string();
-            } else {
-                cycle_finder.insert((part2.piecenum, part2.jetnum, skyline), (height, drops));
-            }
-        }
+        simulate(OUCH, &self.jets).to_string()
     }
+
 }
 
-#[derive(Default, Clone)]
-struct Chamber {
-    jets: Vec<char>,
-    rocks: Vec<u8>,
-    piecenum: usize,
-    jetnum: usize,
-}
+fn simulate(limit: usize, jets: &[char]) -> isize {
+    // Port of https://topaz.github.io/paste/#XQAAAQAUBQAAAAAAAAA5G8iNzA96Qa088jTp5Ejfbji94jfZrlIdoFF1L9sFu0LGygmgp2I70u9FstDo0dRkTOWyMzphAzE8vDJhtED9mZCdlWuODec5bnjjBcH8EIFjQ025xJDs9nUPwsJk2IhYSZivONPbcP6GraZ87xCaSldzIYodcIhf86R/AFMQ7F4X2iVtESxO+dBJS2NfeqClpFXEouluAaevZXqoB10cKVo8mVjC3ZjFrlB5/QVcLboXkxBPvIC2oXxa0b6/a8orfW1g9NsS0XIlyijfvDnVI8DjnoT7Nw/Jf0fX/QI2jL3JrsVo5kQeFSnvUW5QWWFvANz0BWDL50o4g15xo+N1rJG693CW6u4X/ZdAzLj538I31hJ89KTTfTRCcG8aIZd1DrVLum9soQ1FIjqw9ZN9DMX6W/A5YHPYJOngkS26UP+zy0vnNgA6MpFF8hgPGUKotpkm1AnsIjyT4tiWmhEmcNFAtwOoSrECzLiLqLRdv5X4bkOOw78tpqEYChSiOETWtPo+OBKdb3GVnn959iB5TFInSNEZFaMe9aCF7x4Zs4JBM/ubij83/j+z+a3NFX/kgPnpFL59L+CXhCFiUwDScfutsRBgsiAVYGBFdGGYvc/PRPmBukhqU823F4gAz+OahcvRjDlBoke6viZ9UzAQGg/yqj2dNUH/G8DsQAMXahCAIWC+1kIICqRNlewUlu6acCd5v2FuvqwEL7LM03b8OE5h6mdge5zTn5MFA1xmIwjJHFGkSzbd5F1XfTmuZKqsgddaxO4olSSiKgnCPIijYSNfEYPiUTg+B7t3Ey6Fo2H/6LrF8g==
+    // Tried to rename things appropriately but I don't reeeeally understand what he is doing, so difficult
 
-impl Chamber {
-    const PIECES: [[u8; 4]; 5] = [
-        [0b0000000, 0b0000000, 0b0000000, 0b0011110],
-        [0b0000000, 0b0001000, 0b0011100, 0b0001000],
-        [0b0000000, 0b0000100, 0b0000100, 0b0011100],
-        [0b0010000, 0b0010000, 0b0010000, 0b0010000],
-        [0b0000000, 0b0000000, 0b0011000, 0b0011000],
+    let mut rock_index = 0;
+    let mut jet_index = 0;
+
+    let rocks = vec![
+        vec![Coord::new(0, 0), Coord::new(1, 0), Coord::new(2, 0), Coord::new(3, 0)],
+        vec![Coord::new(1, 0), Coord::new(0, 1), Coord::new(2, 1), Coord::new(1, 2)],
+        vec![Coord::new(0, 0), Coord::new(1, 0), Coord::new(2, 0), Coord::new(2, 1), Coord::new(2, 2)],
+        vec![Coord::new(0, 0), Coord::new(0, 1), Coord::new(0, 2), Coord::new(0, 3)],
+        vec![Coord::new(0, 0), Coord::new(1, 0), Coord::new(0, 1), Coord::new(1, 1)]
     ];
 
-    const OUCH: usize = 1_000_000_000_000;
+    let jets = jets.iter()
+        .map(|c| *c as isize -61)
+        .collect::<Vec<_>>();
 
-    fn new(jets: Vec<char>) -> Self {
-        Self {
-            jets,
-            rocks: vec![0, 0, 0, 0, 0, 0, 0],
-            piecenum: 0,
-            jetnum: 0,
+    let mut tower = HashSet::new();
+    let mut cache = HashMap::new();
+    let mut top = 0;
+
+
+    for step in 0..limit - 1  {
+        let mut pos = Coord::new(2, top+4); // set start pos
+
+        let key = (rock_index,jet_index);
+
+        if let Vacant(e) = cache.entry(key) {
+            e.insert((step, top));
+        } else {
+            let (s, t) = cache.get(&key).unwrap();
+
+            let d = (OUCH - step) / (step - s);
+            let m = (OUCH - step) % (step - s);
+
+            if m == 0 {
+                let answer: isize = top + (top-t) * d as isize;
+                return answer;
+            } 
         }
-    }
 
-    fn drop_one(&mut self) {
-        let mut piece = Self::PIECES[self.piecenum];
-        self.piecenum = (self.piecenum + 1) % Self::PIECES.len();
-
-        // make room at the top for the new piece
-        let mut last = self.rocks.len() - 7;
-        while self.rocks[last] != 0 {
-            self.rocks.push(0);
-            last += 1;
-        }
-
-        let mut bottom = self.rocks.len() - 4;
+        let rock = rocks[rock_index].clone();                             // get next rock
+        rock_index = (rock_index+1) % rocks.len();                     // and inc index
 
         loop {
-            // start off by using the jet to move the piece left or right
-            let jet = self.jets[self.jetnum];
-            self.jetnum = (self.jetnum + 1) % self.jets.len();
+            let jet = Coord::new(jets[jet_index], 0);
 
-            match jet {
-                '<' => {
-                    if self.can_go_left(bottom, &piece) {
-                        for p in piece.iter_mut() {
-                            *p <<= 1;
-                        }
-                    }
-                }
-                '>' => {
-                    if self.can_go_right(bottom, &piece) {
-                        for p in piece.iter_mut() {
-                            *p >>= 1;
-                        }
-                    }
-                }
-                _ => panic!("bad input '{jet}'"),
-            }
+            jet_index = (jet_index+1) % jets.len();                   // and inc index
 
-            // drop the piece by one if it can
-            if bottom > 0 && self.can_go_to(bottom - 1, &piece) {
-                bottom -= 1;
-            } else {
-                break;
-            }
+            if check(&tower, pos, jet, rock.clone()) { pos = pos + jet; }    // maybe move side
+            let down = Coord::new(0, -1);
+            if check(&tower, pos, down, rock.clone()) { pos = pos + down; }    // maybe move down
+            else { break; }                             // can't move down
         }
 
-        let mut prow = 4;
-        while prow > 0 {
-            prow -= 1;
-            self.rocks[bottom] |= piece[prow];
-            bottom += 1;
-        }
+        let result = rock.iter().map(|&r| pos + r).collect::<HashSet<_>>();
+        tower.extend(result);
+        let offset = match rock_index {
+            0 => 1,
+            1 => 0,
+            2 => 2,
+            3 => 2,
+            4 => 3,
+            _ => panic!(),
+        };
+        top = isize::max(top, pos.y + offset)     // compute new top
     }
-
-    fn can_go_left(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
-        let mut prow = 4;
-        while prow > 0 {
-            prow -= 1;
-            if (piece[prow] & 0x40) != 0 || (self.rocks[bottom] & (piece[prow] << 1)) != 0 {
-                return false;
-            }
-            bottom += 1;
-        }
-        true
-    }
-
-    fn can_go_right(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
-        let mut prow = 4;
-        while prow > 0 {
-            prow -= 1;
-            if (piece[prow] & 0x01) != 0 || (self.rocks[bottom] & (piece[prow] >> 1)) != 0 {
-                return false;
-            }
-            bottom += 1;
-        }
-        true
-    }
-
-    fn can_go_to(&self, mut bottom: usize, piece: &[u8; 4]) -> bool {
-        let mut prow = 4;
-        while prow > 0 {
-            prow -= 1;
-            if (self.rocks[bottom] & piece[prow]) != 0 {
-                return false;
-            }
-            bottom += 1;
-        }
-        true
-    }
-
-    fn height(&self) -> usize {
-        let mut top = self.rocks.len();
-        while top > 0 && self.rocks[top - 1] == 0 {
-            top -= 1;
-        }
-        top
-    }
+    top
 }
+
+fn is_empty(tower: &HashSet<Coord>, pos: &Coord) -> bool {
+    (0..7).contains(&pos.x) && 
+    pos.y > 0 && 
+    !tower.contains(pos)
+}
+
+fn check(tower: &HashSet<Coord>, pos: Coord, dir: Coord, rock: Vec<Coord>) -> bool {
+    rock.iter().all(|&r| is_empty(tower, &(pos + dir + r)))
+} 
