@@ -20,7 +20,7 @@ fn main() {
     if args.iter().any(|arg| arg == "--full") {
         test(true, 1);
     } else {
-        test(false, 1);
+        test(false, 10);
     }
 }
 
@@ -56,7 +56,7 @@ fn test(full: bool, runs: u16) {
     ]
     } else {
         vec![
-            Box::new(Day17::new()),
+            Box::new(Day24::new()),
         ]
     };
 

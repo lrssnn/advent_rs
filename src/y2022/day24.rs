@@ -112,10 +112,17 @@ impl Day for Day24 {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq)]
 struct State {
     player: Coord<u8>,
     timestamp: usize,
+}
+
+impl Hash for State {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.player.hash(state);
+        (self.timestamp % CYCLE).hash(state);
+    }
 }
 
 impl State {
