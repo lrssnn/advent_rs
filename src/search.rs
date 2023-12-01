@@ -3,6 +3,7 @@ use std::hash::Hash;
 
 use num::Zero;
 
+#[allow(dead_code)]
 pub fn astar_search<
     T: Eq + Hash + Clone,
     H: Fn(&T) -> usize,
