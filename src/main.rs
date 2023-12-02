@@ -44,7 +44,7 @@ fn main() {
     if args.iter().any(|arg| arg == "--full") {
         test(true, 1);
     } else {
-        test(false, 1);
+        test(false, 30);
     }
 }
 
@@ -120,6 +120,11 @@ fn test(full: bool, runs: u16) {
         println!();
         }
     }
+    let total = total_millis.as_micros() as f32 / 1000.0;
+    let total_s = total_millis.as_millis() as f32 / 1000.0;
     println!("+-----+---------------+---------------+");
-    println!("  Total solve time {:.2} ms ({:.2} s)", (total_millis.as_micros() as f32 / 1000.0), (total_millis.as_millis() as f32 / 1000.0));
+    println!("  Total solve time {total:.2} ms ({total_s:.2} s)");
+    if !full {
+        println!("  {:.2}ms per iteration", total / runs as f32);
+    }
 }

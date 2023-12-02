@@ -1,4 +1,5 @@
 // TODO: I'm guessing I can be smarter about "exporting" each day without this file
+#[allow(dead_code)]
 pub mod day1;
 //pub mod day2;
 //pub mod day3;
