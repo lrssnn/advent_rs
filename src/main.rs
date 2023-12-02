@@ -10,31 +10,31 @@ use std::time::Duration;
 
 // This is disgusting
 #[allow(unused_imports)]
-use y2023::{day1::*, 
-    //day2::*, 
-    //day3::*, 
-    //day4::*, 
-    //day5::*, 
-    //day6::*, 
-    //day7::*, 
-    //day8::*, 
-    //day9::*, 
-    //day10::*, 
-    //day11::*, 
-    //day12::*, 
-    //day13::*, 
-    //day14::*, 
-    //day15::*, 
-    //day16::*, 
-    //day17::*, 
-    //day18::*, 
-    //day19::*, 
-    //day20::*, 
-    //day21::*, 
-    //day22::*, 
-    //day23::*, 
-    //day24::*, 
-    //day25::*
+use y2023::{day01::*, 
+    day02::*, 
+    day03::*, 
+    day04::*, 
+    day05::*, 
+    day06::*, 
+    day07::*, 
+    day08::*, 
+    day09::*, 
+    day10::*, 
+    day11::*, 
+    day12::*, 
+    day13::*, 
+    day14::*, 
+    day15::*, 
+    day16::*, 
+    day17::*, 
+    day18::*, 
+    day19::*, 
+    day20::*, 
+    day21::*, 
+    day22::*, 
+    day23::*, 
+    day24::*, 
+    day25::*
 };
 
 use crate::day::Day as DayTrait;
@@ -44,45 +44,39 @@ fn main() {
     if args.iter().any(|arg| arg == "--full") {
         test(true, 1);
     } else {
-        test(false, 30);
+        test(false, 1);
     }
 }
 
 fn test(full: bool, runs: u16) {
     let construction_start = Instant::now();
-    let days: Vec<Box<dyn DayTrait>> = if full {
-        vec! [
-        Box::new(Day1::new()),
-        //Box::new(Day2::new()),
-        //Box::new(Day3::new()),
-        //Box::new(Day4::new()),
-        //Box::new(Day5::new()),
-        //Box::new(Day6::new()),
-        //Box::new(Day7::new()),
-        //Box::new(Day8::new()),
-        //Box::new(Day9::new()),
-        //Box::new(Day10::new()),
-        //Box::new(Day11::new()),
-        //Box::new(Day12::new()),
-        //Box::new(Day13::new()),
-        //Box::new(Day14::new()),
-        //Box::new(Day15::new()),
-        //Box::new(Day16::new()),
-        //Box::new(Day17::new()),
-        //Box::new(Day18::new()),
-        //Box::new(Day19::new()),
-        //Box::new(Day20::new()),
-        //Box::new(Day21::new()),
-        //Box::new(Day22::new()),
-        //Box::new(Day23::new()),
-        //Box::new(Day24::new()),
-        //Box::new(Day25::new()),
-    ]
-    } else {
-        vec![
-            Box::new(Day1::new()),
-        ]
-    };
+    let days: Vec<Box<dyn DayTrait>> = vec! [
+        Box::new(Day01::new()),
+        Box::new(Day02::new()),
+        Box::new(Day03::new()),
+        Box::new(Day04::new()),
+        Box::new(Day05::new()),
+        Box::new(Day06::new()),
+        Box::new(Day07::new()),
+        Box::new(Day08::new()),
+        Box::new(Day09::new()),
+        Box::new(Day10::new()),
+        Box::new(Day11::new()),
+        Box::new(Day12::new()),
+        Box::new(Day13::new()),
+        Box::new(Day14::new()),
+        Box::new(Day15::new()),
+        Box::new(Day16::new()),
+        Box::new(Day17::new()),
+        Box::new(Day18::new()),
+        Box::new(Day19::new()),
+        Box::new(Day20::new()),
+        Box::new(Day21::new()),
+        Box::new(Day22::new()),
+        Box::new(Day23::new()),
+        Box::new(Day24::new()),
+        Box::new(Day25::new()),
+    ];
 
     let construction_time = construction_start.elapsed();
 
@@ -93,6 +87,9 @@ fn test(full: bool, runs: u16) {
     println!("+-----+---------------+---------------+");
     let mut total_millis = Duration::from_secs(0);
     for mut day in days {
+        if day.day_name().starts_with("??") {
+            continue;
+        }
         for _run in 0..runs {
         print!("|  {} |", day.day_name());
         std::io::stdout().flush().unwrap();

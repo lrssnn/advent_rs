@@ -1,13 +1,13 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::super::day::Day;
-pub struct Day1
+pub struct Day01
 {
     lines: Vec<String>,
 }
 
-impl Day1 {
-    pub fn new() -> Day1
+impl Day01 {
+    pub fn new() -> Day01
     {
         let input = include_str!("../../input/y2023/01");
         //let input = "1abc2\npqr3stu8vwx\na1b2c3d4e5f\ntreb7uchet\n";
@@ -15,11 +15,11 @@ impl Day1 {
 
         let lines = input.lines().map(|l| l.to_string()).collect::<Vec<_>>();
 
-        Day1 { lines }
+        Day01 { lines }
     }
 }
 
-impl Day for Day1 {
+impl Day for Day01 {
     fn day_name(&self) -> String { String::from("01") }
     fn answer1(&self) -> String { String::from("55971") }
     fn answer2(&self) -> String { String::from("54719") }
