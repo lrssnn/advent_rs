@@ -50,7 +50,7 @@ fn main() {
 
 fn test(full: bool, runs: u16) {
     let construction_start = Instant::now();
-    let days: Vec<Box<dyn DayTrait>> = vec! [
+    let mut days: Vec<Box<dyn DayTrait>> = vec! [
         Box::new(Day01::new()),
         Box::new(Day02::new()),
         Box::new(Day03::new()),
@@ -77,6 +77,15 @@ fn test(full: bool, runs: u16) {
         Box::new(Day24::new()),
         Box::new(Day25::new()),
     ];
+    
+    // Exclude not implemented days
+    days.retain(|d| !d.day_name().starts_with("??"));
+
+    if !full {
+        days.drain(0..(days.len()-1)); // Is this a smart way to drop all but the last element?
+    }
+
+    let num_days = days.len();
 
     let construction_time = construction_start.elapsed();
 
@@ -87,9 +96,9 @@ fn test(full: bool, runs: u16) {
     println!("+-----+---------------+---------------+");
     let mut total_millis = Duration::from_secs(0);
     for mut day in days {
-        if day.day_name().starts_with("??") {
-            continue;
-        }
+        // if day.day_name().starts_with("??") {
+        //     continue;
+        // }
         for _run in 0..runs {
         print!("|  {} |", day.day_name());
         std::io::stdout().flush().unwrap();
@@ -123,5 +132,7 @@ fn test(full: bool, runs: u16) {
     println!("  Total solve time {total:.2} ms ({total_s:.2} s)");
     if !full {
         println!("  {:.2}ms per iteration", total / runs as f32);
+    } else {
+        println!("  {:.2}ms per problem", total / num_days as f32);
     }
 }

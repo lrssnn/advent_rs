@@ -62,6 +62,18 @@ need_stdout = true
 allow_warnings = true
 background = true
 
+[jobs.full]
+command = [
+    "cargo", "run",
+    "--color", "always",
+    "--", "--full",
+    # put launch parameters for your program behind a `--` separator
+]
+need_stdout = true
+allow_warnings = true
+background = false
+
+
 # This parameterized job runs the example of your choice, as soon
 # as the code compiles.
 # Call it as
@@ -76,4 +88,4 @@ allow_warnings = true
 # Shortcuts to internal functions (scrolling, toggling, etc.)
 # should go in your personal global prefs.toml file instead.
 [keybindings]
-# alt-m = "job:my-job"
+f = "job:full"
