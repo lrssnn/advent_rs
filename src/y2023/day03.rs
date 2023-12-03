@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::super::day::Day;
@@ -29,29 +27,36 @@ impl Day for Day03 {
     fn answer2(&self) -> String { String::from("76504829") }
 
     fn part1(&mut self) -> String {
-        self.numbers.par_iter().filter(|n| has_adjacent_symbol(n, &self.symbols)).map(|n| n.value).sum::<usize>().to_string()
+        self.numbers.par_iter()
+            .filter(|n| has_adjacent_symbol(n, &self.symbols))
+            .map(|n| n.value).sum::<usize>()
+            .to_string()
     }
 
     fn part2(&mut self) -> String {
-        self.symbols.par_iter().map(|s| get_gear_ratio(&self.numbers, s)).sum::<usize>().to_string()
+        self.symbols.par_iter()
+            .map(|s| get_gear_ratio(&self.numbers, s))
+            .sum::<usize>()
+            .to_string()
     }
 }
 
 struct Number {
     value: usize,
     row: usize,
-    cols: Range<usize>,
+    start: usize,
+    end: usize,
 }
 
 struct Symbol {
-    value: char,
+    gear: bool,
     row: usize,
     col: usize,
 }
 
 impl Number {
-    fn new(value_s: String, row: usize, cols: Range<usize>) -> Self {
-        Self { value: value_s.parse::<usize>().unwrap() , row, cols }
+    fn new(value_s: String, row: usize, start: usize, end: usize) -> Self {
+        Self { value: value_s.parse::<usize>().unwrap() , row, start, end }
     }
 
     fn all_from_str(input: &str) -> Vec<Number> {
@@ -73,7 +78,7 @@ impl Number {
                     }
                     (true, false) => {
                         // End of number
-                        numbers.push(Number::new(number_s, i, number_start..j));
+                        numbers.push(Number::new(number_s, i, number_start, j));
                         inside_number = false;
                         number_start = 0;
                         number_s = String::new();
@@ -82,7 +87,7 @@ impl Number {
                 }
             }
             // Make sure to capture numbers that end at the end of the line
-            if inside_number { numbers.push(Number::new(number_s, i, number_start..line.len())); }
+            if inside_number { numbers.push(Number::new(number_s, i, number_start, line.len())); }
         }
 
         numbers
@@ -91,7 +96,7 @@ impl Number {
 
 impl Symbol {
     fn new(value: char, row: usize, col: usize) -> Self {
-        Self { value , row, col }
+        Self { gear: value == '*' , row, col }
     }
 
     fn all_from_str(input: &str) -> Vec<Symbol> {
@@ -113,7 +118,7 @@ fn has_adjacent_symbol(number: &Number, symbols: &[Symbol]) -> bool {
 }
 
 fn get_gear_ratio(numbers: &[Number], symbol: &Symbol) -> usize {
-    if symbol.value != '*' {
+    if !symbol.gear {
         return 0;
     }
 
@@ -127,11 +132,7 @@ fn get_gear_ratio(numbers: &[Number], symbol: &Symbol) -> usize {
 }
 
 fn are_adjacent(number: &Number, symbol: &Symbol) -> bool {
-    let row_distance = number.row as isize - symbol.row as isize;
-    match row_distance {
-        -1..=1 => {
-            (number.cols.start.saturating_sub(1)..(number.cols.end + 1)).contains(&symbol.col)
-        }, 
-        _ => false // Too far to be adjacent
-    }
+    number.row.abs_diff(symbol.row) <= 1 &&
+    number.start.saturating_sub(1) <= symbol.col &&
+    symbol.col <= number.end
 }
