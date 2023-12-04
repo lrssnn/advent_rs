@@ -1,4 +1,4 @@
-use std::{fmt::Display, collections::VecDeque};
+use std::{fmt::Display, collections::HashMap};
 
 use super::super::day::Day;
 
@@ -32,17 +32,11 @@ impl Day for Day04 {
     }
 
     fn part2(&mut self) -> String {
-        let mut card_pile = self.cards.clone();
-        let mut processed = 0;
-        while let Some(card) = card_pile.pop() {
-            processed += 1;
-            let matches = card.matches() as usize;
-            for i in (card.id + 1)..(card.id + matches + 1) {
-                let c = self.cards[i].clone();
-                card_pile.push(c);
-            }
-        }
-        processed.to_string()
+        let mut cache = HashMap::new();
+        self.cards.iter()
+            .map(|c| c.evaluate(&self.cards, &mut cache))
+            .sum::<usize>()
+            .to_string()
     }
 }
 
@@ -69,8 +63,20 @@ impl Card {
         Self { id, winners, numbers }
     }
 
-    fn with_id(&self, id: usize) -> Self {
-        Self { id, ..self.clone() }
+    fn evaluate(&self, cards: &Vec<Card>, cache: &mut HashMap<usize, usize>) -> usize {
+        if let Some(cached) = cache.get(&self.id) {
+            return *cached;
+        }
+
+        let matches = self.matches() as usize;
+
+        let mut score = 1;
+        for i in (self.id + 1)..(self.id + matches + 1) {
+            score += cards[i].evaluate(cards, cache);
+        }
+
+        cache.insert(self.id, score);
+        score
     }
 
     fn matches(&self) -> u32 {
@@ -97,6 +103,6 @@ impl Display for Card {
     }
 }
 
-fn numbers_to_list(input: &Vec<usize>) -> String {
+fn numbers_to_list(input: &[usize]) -> String {
     input.iter().fold(String::new(), |acc, n| acc + " " + &n.to_string())
 }
