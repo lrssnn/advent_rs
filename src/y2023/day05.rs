@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IntoParallelIterator};
+
 use super::super::day::Day;
 
 pub struct Day05
@@ -29,14 +31,35 @@ impl Day for Day05 {
 
     fn part1(&mut self) -> String {
         self.seeds.iter().map(|s|
-            self.maps.iter().fold(*s, |value, map| map.map(value))
+            chained_map(*s, &self.maps)
         ).min().unwrap().to_string()
     }
 
     fn part2(&mut self) -> String {
         let mut seed_ranges = vec![];
-        
+        for i in 0..self.seeds.len() {
+            if i % 2 == 0 {
+                seed_ranges.push(self.seeds[i]..=(self.seeds[i] + self.seeds[i + 1]));
+            }
+        }
+
+        let answer = seed_ranges.par_iter()
+        .map(|r| {
+            r.clone().into_par_iter()
+            .map(|s| {
+                chained_map(s, &self.maps)
+            }
+            ).min().unwrap()
+        }
+        ).min().unwrap();
+
+        if answer >= 104070863 { println!("TOO BIG"); }
+        answer.to_string()
     }
+}
+
+fn chained_map(seed: usize, maps: &[Map]) -> usize {
+    maps.iter().fold(seed, |value, map| map.map(value))
 }
 
 struct Map {
