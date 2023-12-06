@@ -27,7 +27,7 @@ impl Day05 {
 impl Day for Day05 {
     fn day_name(&self) -> String { String::from("05") }
     fn answer1(&self) -> String { String::from("324724204") }
-    fn answer2(&self) -> String { String::from("??") }
+    fn answer2(&self) -> String { String::from("104070862") }
 
     fn part1(&mut self) -> String {
         self.seeds.iter().map(|s|
@@ -99,7 +99,7 @@ impl MapRange {
 
     fn try_map(&self, input: usize) -> Option<usize> {
         //println!("Trying to map {input} in {}-{}", self.src, self.src + self.len);
-        if input >= self.src && input <= self.src + self.len {
+        if input >= self.src && input < self.src + self.len {
             let input_offset = input - self.src;
             Some(self.dest + input_offset)
         } else {
