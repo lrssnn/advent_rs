@@ -29,27 +29,23 @@ impl Day for Day07 {
 
     fn part1(&mut self) -> String {
         self.hands.sort();
-        self.hands.iter().enumerate().map(|(rank, hand)| hand.get_winnings(rank + 1)).sum::<usize>().to_string()
+        self.hands.iter().enumerate()
+            .map(|(rank, hand)| hand.get_winnings(rank + 1))
+            .sum::<usize>()
+            .to_string()
     }
 
     fn part2(&mut self) -> String {
         for hand in self.hands.iter_mut() {
-            // Convert Jack value Joker value (11 -> 1)
-            for i in 0..5 {
-                if hand.cards[i] == 11 {
-                    hand.cards[i] = 1;
-                }
-            }
-            // Convert frequencies as well
-            if let Some(j) = hand.frequencies.remove(&11) {
-                hand.frequencies.insert(JOKER, j);
-            }
+            hand.convert_to_jokers();
         }
 
         self.hands.sort();
 
-        let answer = self.hands.iter().enumerate().map(|(rank, hand)| hand.get_winnings(rank + 1)).sum::<usize>();
-        answer.to_string()
+        self.hands.iter().enumerate()
+            .map(|(rank, hand)| hand.get_winnings(rank + 1))
+            .sum::<usize>()
+            .to_string()
     }
 }
 
@@ -58,13 +54,7 @@ struct Hand {
     cards: [u8; 5],
     bid: usize,
     frequencies: HashMap<u8, u8>,
-}
-
-impl Ord for Hand {
-    fn cmp(&self, other: &Self) -> Ordering {
-        println!("Ord {self} vs {other}");
-        self.partial_cmp(other).unwrap()
-    }
+    hand_type: HandType,
 }
 
 impl Hand {
@@ -73,7 +63,8 @@ impl Hand {
         let cards = cards.chars().map(value_from_char).collect::<Vec<_>>().try_into().unwrap();
         let bid = bid.parse::<usize>().unwrap();
         let frequencies = Hand::card_frequencies(&cards);
-        Self { cards, bid, frequencies }
+        let hand_type = Hand::get_hand_type(&frequencies);
+        Self { cards, bid, frequencies, hand_type }
     }
 
     fn card_frequencies(cards: &[u8; 5]) -> HashMap<u8, u8> {
@@ -90,84 +81,90 @@ impl Hand {
         self.bid * rank
     }
 
-    fn get_hand_type(&self) -> HandType {
-        if self.has_five() { HandType::FiveOfKind }
-        else if self.has_four() { HandType::FourOfKind }
-        else if self.has_full_house() { HandType::FullHouse }
-        else if self.has_three() { HandType::ThreeOfKind }
-        else if self.has_two_pair() { HandType::TwoPair }
-        else if self.has_pair() { HandType::Pair }
+    fn convert_to_jokers(&mut self) {
+        // Convert Jack value Joker value (11 -> 1)
+        for i in 0..5 {
+            if self.cards[i] == 11 {
+                self.cards[i] = 1;
+            }
+        }
+
+        // Convert frequencies as well
+        if let Some(j) = self.frequencies.remove(&11) {
+            self.frequencies.insert(JOKER, j);
+        }
+
+        // update hand type
+        self.hand_type = Hand::get_hand_type(&self.frequencies);
+    }
+
+    fn get_hand_type(frequencies: &HashMap<u8, u8>) -> HandType {
+        if Hand::has_five(frequencies) { HandType::FiveOfKind }
+        else if Hand::has_four(frequencies) { HandType::FourOfKind }
+        else if Hand::has_full_house(frequencies) { HandType::FullHouse }
+        else if Hand::has_three(frequencies) { HandType::ThreeOfKind }
+        else if Hand::has_two_pair(frequencies) { HandType::TwoPair }
+        else if Hand::has_pair(frequencies) { HandType::Pair }
         else { HandType::HighCard }
     }
 
-    fn has_five(&self) -> bool {
-        self.frequencies.len() == 1 ||
-        self.frequencies.len() == 2 && self.frequencies.contains_key(&JOKER)
+    fn has_five(frequencies: &HashMap<u8, u8>) -> bool {
+        frequencies.len() == 1 ||
+        frequencies.len() == 2 && frequencies.contains_key(&JOKER)
     }
 
-    fn has_four(&self) -> bool {
-        let jokers = self.frequencies.get(&JOKER).unwrap_or(&0);
-        self.frequencies.iter().any(|(&k, &v)| k != JOKER && (v + jokers) == 4)
+    fn has_four(frequencies: &HashMap<u8, u8>) -> bool {
+        let jokers = frequencies.get(&JOKER).unwrap_or(&0);
+        frequencies.iter().any(|(&k, &v)| k != JOKER && (v + jokers) == 4)
     }
 
-    fn has_three(&self) -> bool {
-        let jokers = self.frequencies.get(&JOKER).unwrap_or(&0);
-        self.frequencies.iter().any(|(&k, &v)| k != JOKER && (v + jokers) == 3)
+    fn has_three(frequencies: &HashMap<u8, u8>) -> bool {
+        let jokers = frequencies.get(&JOKER).unwrap_or(&0);
+        frequencies.iter().any(|(&k, &v)| k != JOKER && (v + jokers) == 3)
     }
 
-    fn has_full_house(&self) -> bool {
+    fn has_full_house(frequencies: &HashMap<u8, u8>) -> bool {
         // We know we checked for a four of a kind already, this is sufficient
-        let has_true_full_house = self.frequencies.len() == 2;
-        let has_wild_full_house = self.frequencies.len() == 3 && self.frequencies.contains_key(&JOKER);
+        let has_true_full_house = frequencies.len() == 2;
+        let has_wild_full_house = frequencies.len() == 3 && frequencies.contains_key(&JOKER);
 
         has_true_full_house || has_wild_full_house
     }
 
-    fn has_two_pair(&self) -> bool {
+    fn has_two_pair(frequencies: &HashMap<u8, u8>) -> bool {
         // NO WILDCARDS - if you could create a two pair with a wild card, you would create a 
         // 3 of a kind (or better) instead, in all cases
-        self.frequencies.values().filter(|&v| *v == 2).count() == 2
+        frequencies.values().filter(|&v| *v == 2).count() == 2
     }
 
-    fn has_pair(&self) -> bool {
-        let jokers = *self.frequencies.get(&JOKER).unwrap_or(&0);
+    fn has_pair(frequencies: &HashMap<u8, u8>) -> bool {
+        let jokers = *frequencies.get(&JOKER).unwrap_or(&0);
         // Again, we know we don't have anything better
-        self.frequencies.values().any(|v| *v == 2) ||
+        frequencies.values().any(|v| *v == 2) ||
         jokers != 0
+    }
+}
+
+impl Ord for Hand {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.hand_type.cmp(&other.hand_type) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+
+        for i in 0..5 {
+            match self.cards[i].cmp(&other.cards[i]) {
+                Ordering::Equal => {}
+                ord => return ord,
+            }
+        }
+        Ordering::Equal
     }
 }
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.get_hand_type().partial_cmp(&other.get_hand_type()) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-        match self.cards[0].partial_cmp(&other.cards[0]) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-
-        match self.cards[1].partial_cmp(&other.cards[1]) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-
-        match self.cards[2].partial_cmp(&other.cards[2]) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-
-        match self.cards[3].partial_cmp(&other.cards[3]) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-
-        match self.cards[4].partial_cmp(&other.cards[4]) {
-            Some(Ordering::Equal) => {}
-            ord => return ord,
-        }
-        panic!();
+        Some(self.cmp(other))
     }
 }
 
