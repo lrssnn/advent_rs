@@ -65,7 +65,7 @@ impl Day for Day10 {
     }
 
     fn part2(&mut self) -> String {
-        (0..self.map.len()).into_iter().map(|r| self.evaluate_row(r)).sum::<usize>().to_string()
+        (0..self.map.len()).map(|r| self.evaluate_row(r)).sum::<usize>().to_string()
     }
 }
 
@@ -101,13 +101,13 @@ impl Day10 {
         // This is gross
         let mut first = None;
         let mut second = None;
-        for checking_direction in Direction::all().iter() {
-            let checking_coord = my_coord + *checking_direction;
+        for checking_direction in Direction::all().iter().cloned() {
+            let checking_coord = my_coord + checking_direction;
             if checking_coord != my_coord {
                 if let Some(neighbours) = self.neighbours(checking_coord) {
                     if neighbours.0.0 == my_coord || neighbours.1.0 == my_coord {
-                        if first.is_none() { first = Some(checking_direction.clone()); }
-                        else if second.is_none() { second = Some(checking_direction.clone()); }
+                        if first.is_none() { first = Some(checking_direction); }
+                        else if second.is_none() { second = Some(checking_direction); }
                         else { panic!("Found more than two neighbours..."); }
                     }
                 }
@@ -133,11 +133,11 @@ impl Day10 {
         let mut score = 0;
         let mut crossings = 0;
 
-        for i in 0..row.len() {
+        for (i, tile) in row.iter().enumerate() {
              let this_coord = Coord::new(i as i16, row_idx as i16);
 
              if self.main_loop.contains(&this_coord) {
-                if row[i].can_go_up() { crossings += 1; }
+                if tile.can_go_up() { crossings += 1; }
              } else {
                 // When crossings is odd, we are "inside"
                 score += crossings % 2;
