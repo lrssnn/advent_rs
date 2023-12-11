@@ -26,6 +26,16 @@ impl Direction {
         }
     }
 
+    pub fn inverse(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+            Direction::None => Direction::None,
+        }
+    }
+
     pub fn all() -> Vec<Direction> {
         vec![Direction::Down, Direction::Right, Direction::Up, Direction::Left, Direction::None]
     }
