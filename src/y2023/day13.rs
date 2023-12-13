@@ -22,19 +22,14 @@ impl Day13 {
 impl Day for Day13 {
     fn day_name(&self) -> String { String::from("13") }
     fn answer1(&self) -> String { String::from("34100") }
-    fn answer2(&self) -> String { String::from("??") }
+    fn answer2(&self) -> String { String::from("33106") }
 
     fn part1(&mut self) -> String {
-        // for map in &self.maps {
-        //     //println!("{map}");
-        //     println!("Vertical: {:?}, Horizontal: {:?}", map.vertical_reflections(), map.horizontal_reflections());
-        //     println!();
-        // }
-        self.maps.iter().map(|m| m.score()).sum::<usize>().to_string()
+        self.maps.iter().map(|m| m.score(false)).sum::<usize>().to_string()
     }
 
     fn part2(&mut self) -> String {
-        String::new()
+        self.maps.iter().map(|m| m.score(true)).sum::<usize>().to_string()
     }
 }
 
@@ -48,53 +43,67 @@ impl Map {
         Map { lines }
     }
 
-    fn score(&self) -> usize {
-        if let Some(horizontal) = self.horizontal_reflection() {
+    fn score(&self, with_substitutions: bool) -> usize {
+        if let Some(horizontal) = self.horizontal_reflection(with_substitutions) {
             return 100 * (horizontal + 1)
         }
-        self.vertical_reflection().unwrap() + 1
+        self.vertical_reflection(with_substitutions).unwrap() + 1
     }
 
-    fn vertical_reflection(&self) -> Option<usize> {
+    fn vertical_reflection(&self, with_substitution: bool) -> Option<usize> {
         for col in 0..(self.lines[0].len() - 1) {
-            if self.reflects_vert_after(col) {
+            let (found, used_substitution) = self.reflects_vert_after(col);
+            if found && (used_substitution == with_substitution) {
                 return Some(col);
             }
         }
+
         None
     }
 
-    fn reflects_vert_after(&self, col: usize) -> bool {
+    fn reflects_vert_after(&self, col: usize) -> (bool, bool) {
+        let mut used_substitution = false;
         let reflectable_distance = (col + 1).min(self.lines[0].len() - col - 1);
         for line in &self.lines {
             for offset in 0..reflectable_distance {
                 if line[col - offset] != line [col + 1 + offset] {
-                    return false;
+                    if !used_substitution {
+                        // using our one substitution to ignore this
+                        used_substitution = true;
+                    } else {
+                        return (false, true);
+                    }
                 }
             }
         }
-        true
+        (true, used_substitution)
     }
 
-    fn horizontal_reflection(&self) -> Option<usize> {
+    fn horizontal_reflection(&self, with_substitution: bool) -> Option<usize> {
         for row in 0..(self.lines.len() - 1) {
-            if self.reflects_horizontal_after(row) {
+            let (found, used_substitution) = self.reflects_horizontal_after(row);
+            if found && (used_substitution == with_substitution) {
                 return Some(row)
             }
         }
         None
     }
 
-    fn reflects_horizontal_after(&self, row: usize) -> bool {
+    fn reflects_horizontal_after(&self, row: usize) -> (bool, bool) {
+        let mut used_substitution = false;
         let reflectable_distance = (row + 1).min(self.lines.len() - row - 1);
         for col in 0..self.lines[0].len() {
             for offset in 0..reflectable_distance {
                 if self.lines[row - offset][col] != self.lines[row + 1 + offset][col] {
-                    return false;
+                    if !used_substitution {
+                        used_substitution = true;
+                    } else {
+                        return (false, true);
+                    }
                 }
             }
         }
-        true
+        (true, used_substitution)
     }
 }
 
