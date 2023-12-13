@@ -30,7 +30,7 @@ impl Day for Day13 {
         //     println!("Vertical: {:?}, Horizontal: {:?}", map.vertical_reflections(), map.horizontal_reflections());
         //     println!();
         // }
-        self.maps.iter().map(Map::score).sum::<usize>().to_string()
+        self.maps.iter().map(|m| m.score()).sum::<usize>().to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -49,20 +49,19 @@ impl Map {
     }
 
     fn score(&self) -> usize {
-        let horizontal = self.horizontal_reflections();
-        let vertical = self.vertical_reflections();
-        // adding len because the answer is in 1 based indexing
-        (100 * (horizontal.iter().sum::<usize>() + horizontal.len())) + (vertical.iter().sum::<usize>() + vertical.len())
+        if let Some(horizontal) = self.horizontal_reflection() {
+            return 100 * (horizontal + 1)
+        }
+        self.vertical_reflection().unwrap() + 1
     }
 
-    fn vertical_reflections(&self) -> Vec<usize> {
-        let mut res = vec![];
+    fn vertical_reflection(&self) -> Option<usize> {
         for col in 0..(self.lines[0].len() - 1) {
             if self.reflects_vert_after(col) {
-                res.push(col);
+                return Some(col);
             }
         }
-        res
+        None
     }
 
     fn reflects_vert_after(&self, col: usize) -> bool {
@@ -77,14 +76,13 @@ impl Map {
         true
     }
 
-    fn horizontal_reflections(&self) -> Vec<usize> {
-        let mut res = vec![];
+    fn horizontal_reflection(&self) -> Option<usize> {
         for row in 0..(self.lines.len() - 1) {
             if self.reflects_horizontal_after(row) {
-                res.push(row);
+                return Some(row)
             }
         }
-        res
+        None
     }
 
     fn reflects_horizontal_after(&self, row: usize) -> bool {
