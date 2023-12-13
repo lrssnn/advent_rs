@@ -33,6 +33,12 @@ impl Day for Day13 {
     }
 }
 
+fn transpose(input: &[Vec<bool>]) -> Vec<Vec<bool>> {
+    (0..input[0].len())
+        .map(|i| input.iter().map(|inner| inner[i]).collect::<Vec<_>>())
+        .collect()
+}
+
 struct Map {
     lines: Vec<Vec<bool>>,
 }
@@ -43,45 +49,18 @@ impl Map {
         Map { lines }
     }
 
-    fn score(&self, with_substitutions: bool) -> usize {
-        if let Some(horizontal) = self.horizontal_reflection(with_substitutions) {
+    fn score(&self, with_substitution: bool) -> usize {
+        if let Some(horizontal) = Self::find_reflection(&self.lines, with_substitution) {
             return 100 * (horizontal + 1)
         }
-        self.vertical_reflection(with_substitutions).unwrap() + 1
+        Self::find_reflection(&transpose(&self.lines), with_substitution).unwrap() + 1
     }
 
-    fn vertical_reflection(&self, with_substitution: bool) -> Option<usize> {
-        for col in 0..(self.lines[0].len() - 1) {
-            let (found, used_substitution) = self.reflects_vert_after(col);
-            if found && (used_substitution == with_substitution) {
-                return Some(col);
-            }
-        }
-
-        None
-    }
-
-    fn reflects_vert_after(&self, col: usize) -> (bool, bool) {
-        let mut used_substitution = false;
-        let reflectable_distance = (col + 1).min(self.lines[0].len() - col - 1);
-        for line in &self.lines {
-            for offset in 0..reflectable_distance {
-                if line[col - offset] != line [col + 1 + offset] {
-                    if !used_substitution {
-                        // using our one substitution to ignore this
-                        used_substitution = true;
-                    } else {
-                        return (false, true);
-                    }
-                }
-            }
-        }
-        (true, used_substitution)
-    }
-
-    fn horizontal_reflection(&self, with_substitution: bool) -> Option<usize> {
-        for row in 0..(self.lines.len() - 1) {
-            let (found, used_substitution) = self.reflects_horizontal_after(row);
+    fn find_reflection(lines: &[Vec<bool>], with_substitution: bool) -> Option<usize> {
+        // This only looks for reflections around a row (i.e. the reflection line is horizontal)
+        // And relies on the reflection being inbetween rows
+        for row in 0..(lines.len() - 1) {
+            let (found, used_substitution) = Self::reflects_after(lines, row);
             if found && (used_substitution == with_substitution) {
                 return Some(row)
             }
@@ -89,12 +68,12 @@ impl Map {
         None
     }
 
-    fn reflects_horizontal_after(&self, row: usize) -> (bool, bool) {
+    fn reflects_after(lines: &[Vec<bool>], row: usize) -> (bool, bool) {
         let mut used_substitution = false;
-        let reflectable_distance = (row + 1).min(self.lines.len() - row - 1);
-        for col in 0..self.lines[0].len() {
+        let reflectable_distance = (row + 1).min(lines.len() - row - 1);
+        for col in 0..lines[0].len() {
             for offset in 0..reflectable_distance {
-                if self.lines[row - offset][col] != self.lines[row + 1 + offset][col] {
+                if lines[row - offset][col] != lines[row + 1 + offset][col] {
                     if !used_substitution {
                         used_substitution = true;
                     } else {
