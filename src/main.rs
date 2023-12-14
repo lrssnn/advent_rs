@@ -63,7 +63,7 @@ fn test(full: bool, runs: u16) {
         Box::new(Day10::new()),
         Box::new(Day11::new()),
         Box::new(Day12::new()),
-        //Box::new(Day13::new()),
+        Box::new(Day13::new()),
         Box::new(Day14::new()),
         Box::new(Day15::new()),
         Box::new(Day16::new()),

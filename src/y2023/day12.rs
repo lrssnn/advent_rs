@@ -14,11 +14,15 @@ impl Day12 {
     pub fn new() -> Day12
     {
         let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
-        let input = include_str!("../../input/y2023/12");
+        //let input = include_str!("../../input/y2023/12");
 
         let rows = input.lines().map(Row::from_str).collect();
             
         Day12 { rows, unknown_groups_cache: HashMap::new() }
+    }
+
+    fn truncate_rows(&mut self) {
+        // self.rows = self.rows.iter().map(Row::truncated_row).collect()
     }
 }
 
@@ -28,8 +32,9 @@ impl Day for Day12 {
     fn answer2(&self) -> String { String::from("??") }
 
     fn part1(&mut self) -> String {
-        println!();
-        for row in &self.rows {
+        // println!();
+        self.truncate_rows();
+        // for row in &self.rows {
             // println!("{row}");
             //println!("{row}: {}", row.resolve_unknowns(&mut self.unknown_groups_cache).iter().filter(|c| row.is_satisfied_by(c)).count());
             // println!("Yields: ");
@@ -38,7 +43,7 @@ impl Day for Day12 {
             // }
             // let mut buf = String::new();
             // std::io::stdin().read_line(&mut buf);
-        }
+        // }
 
         self.rows.iter()
             .map(|row| row.resolve_unknowns(&mut self.unknown_groups_cache).iter()
@@ -68,7 +73,7 @@ fn _group_to_string(input: &(SpringType, usize)) -> String {
     r
 }
 
-fn springs_to_string(input: &[SpringType]) -> String {
+fn _springs_to_string(input: &[SpringType]) -> String {
     let mut r = String::new();
     for spring in input {
         r += &spring.to_string();
@@ -110,6 +115,7 @@ impl SpringType {
     }
 }
 
+#[derive(Clone)]
 struct Row {
     #[allow(dead_code)]
     springs: Vec<SpringType>,
@@ -128,6 +134,42 @@ impl Row {
             groups, 
             bad_groups 
         }
+    }
+
+    // fn truncated_row(&self) -> Self {
+    //     // Remove any groups that are fulfilled by the knowns in the group
+    //     println!("truncating {self}");
+    //     let mut groups = vec![];
+    //     let mut bad_groups = vec![];
+    //     // Front
+    //     let mut first_unknown_group = 0;
+    //     let mut first_not_dropped_group_index = 0;
+    //     while self.groups[first_unknown_group].0 != SpringType::Unknown {
+    //         if self.groups[first_unknown_group].0 == SpringType::Broken && self.groups[first_unknown_group + 1].0 != SpringType::Unknown {
+    //             println!("Dropping group {}", self.bad_groups[first_not_dropped_group_index]);
+    //             first_not_dropped_group_index += 1;
+    //         }
+    //     }
+
+    //     groups = self.groups[first_not_dropped_group_index..].to_vec();
+
+
+    //     let springs = Self::springs_from_groups(&groups);
+    //     Row {
+    //         springs,
+    //         groups,
+    //         bad_groups,
+    //     }
+    // }
+
+    fn _springs_from_groups(groups: &Vec<(SpringType, usize)>) -> Vec<SpringType> {
+        let mut r = vec![];
+        for group in groups {
+            for _ in 0..group.1 {
+                r.push(group.0);
+            }
+        }
+        r
     }
 
     fn groups_from_springs(springs: &Vec<SpringType>) -> Vec<(SpringType, usize)> {
@@ -164,7 +206,7 @@ impl Row {
         }
     }
 
-    fn resolve_unknowns(&self, cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<SpringType>> {
+    fn resolve_unknowns(&self, _cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<SpringType>> {
         // let mut result = vec![self.groups.clone()];
 
         // println!("Resolve Unknowns of {}", groups_to_string(&self.groups));
@@ -211,7 +253,7 @@ impl Row {
         result
     }
 
-    fn unknown_group_permutations(length: usize, cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<(SpringType, usize)>> {
+    fn _unknown_group_permutations(length: usize, cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<(SpringType, usize)>> {
         if cache.contains_key(&length) {
             return cache.get(&length).unwrap().clone()
         }
@@ -220,7 +262,7 @@ impl Row {
             return vec![vec![(SpringType::Operational, 1)], vec![(SpringType::Broken, 1)]];
         }
 
-        let rest_perms = Self::unknown_group_permutations(length - 1, cache);
+        let rest_perms = Self::_unknown_group_permutations(length - 1, cache);
 
         let resolve_with = |spring_type, perms: &Vec<(SpringType, usize)>| {
             // This is hideous
