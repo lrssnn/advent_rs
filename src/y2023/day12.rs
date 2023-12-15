@@ -34,16 +34,16 @@ impl Day for Day12 {
     fn part1(&mut self) -> String {
         // println!();
         self.truncate_rows();
-        // for row in &self.rows {
-            // println!("{row}");
-            //println!("{row}: {}", row.resolve_unknowns(&mut self.unknown_groups_cache).iter().filter(|c| row.is_satisfied_by(c)).count());
-            // println!("Yields: ");
-            // for s in row.resolve_unknowns(&mut self.unknown_groups_cache).iter() {
-            //     println!("  {}: {}", springs_to_string(s), row.is_satisfied_by(s));
-            // }
-            // let mut buf = String::new();
-            // std::io::stdin().read_line(&mut buf);
-        // }
+        for row in &self.rows {
+            println!("{row}");
+            println!("{row}: {}", row.resolve_unknowns(&mut self.unknown_groups_cache).iter().filter(|c| row.is_satisfied_by(c)).count());
+            println!("Yields: ");
+            for s in row.resolve_unknowns(&mut self.unknown_groups_cache).iter() {
+                println!("  {}: {}", _springs_to_string(s), row.is_satisfied_by(s));
+            }
+            let mut buf = String::new();
+            std::io::stdin().read_line(&mut buf).unwrap();
+        }
 
         self.rows.iter()
             .map(|row| row.resolve_unknowns(&mut self.unknown_groups_cache).iter()
@@ -245,10 +245,11 @@ impl Row {
                     good[i] = SpringType::Operational; 
                     bad[i] = SpringType::Broken;
                     vec![good, bad]
-                }).collect();
+                })
+                .filter(|candidate| self.can_be_satisfied_by(candidate))
+                .collect();
             }
         }
-            
 
         result
     }
@@ -283,6 +284,28 @@ impl Row {
         good.append(&mut bad);
         cache.insert(length, good.clone());
         good
+    }
+
+    fn can_be_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
+        let groups = Row::groups_from_springs(candidate);
+        let bad_groups = groups.iter().filter(|g| g.0 != SpringType::Operational).collect::<Vec<_>>();
+
+        for i in 0..bad_groups.len() {
+            if bad_groups[i].0 == SpringType::Unknown {
+                // Give up on checking this for now
+                return true;
+            }
+            if i >= self.bad_groups.len() {
+                // ???
+                return true;
+            }
+            if bad_groups[i].1 != self.bad_groups[i] {
+                println!("Disqualifying {} as candidate for {self}", _springs_to_string(candidate));
+                return false;
+            }
+        }
+        //println!("Happy");
+        true
     }
 
     fn is_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
