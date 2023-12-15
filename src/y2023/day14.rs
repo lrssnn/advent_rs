@@ -29,7 +29,7 @@ impl Day for Day14 {
     fn part1(&mut self) -> String {
         let mut map = self.map.clone();
         tilt_north_until_stable(&mut map);
-        evaluate_load(&mut map).to_string()
+        evaluate_load(&map).to_string()
     }
 
     fn part2(&mut self) -> String {
@@ -50,7 +50,7 @@ impl Day for Day14 {
             }
             seen_states.insert(self.map.clone(), cycle);
         }
-        evaluate_load(&mut self.map).to_string()
+        evaluate_load(&self.map).to_string()
     }
 }
 
@@ -80,11 +80,11 @@ fn tilt_south_until_stable(map: &mut Vec<Vec<Cell>>) {
     while tilt_south(map) {}
 }
 
-fn tilt_east_until_stable(map: &mut Vec<Vec<Cell>>) {
+fn tilt_east_until_stable(map: &mut [Vec<Cell>]) {
     while tilt_east(map) {}
 }
 
-fn tilt_west_until_stable(map: &mut Vec<Vec<Cell>>) {
+fn tilt_west_until_stable(map: &mut [Vec<Cell>]) {
     while tilt_west(map) {}
 }
 
@@ -120,14 +120,14 @@ fn tilt_south(map: &mut Vec<Vec<Cell>>) -> bool {
     any_moves
 }
 
-fn tilt_west(map: &mut Vec<Vec<Cell>>) -> bool {
+fn tilt_west(map: &mut [Vec<Cell>]) -> bool {
     let mut any_moves = false;
 
     for col in 0..(map[0].len() - 1) {
-        for row in 0..map.len() {
-            if map[row][col] == Cell::Empty && map[row][col + 1] == Cell::Round {
-                map[row][col] = Cell::Round;
-                map[row][col + 1] = Cell::Empty;
+        for row in map.iter_mut() {
+            if row[col] == Cell::Empty && row[col + 1] == Cell::Round {
+                row[col] = Cell::Round;
+                row[col + 1] = Cell::Empty;
                 any_moves = true;
             }
         }
@@ -136,14 +136,14 @@ fn tilt_west(map: &mut Vec<Vec<Cell>>) -> bool {
     any_moves
 }
 
-fn tilt_east(map: &mut Vec<Vec<Cell>>) -> bool {
+fn tilt_east(map: &mut [Vec<Cell>]) -> bool {
     let mut any_moves = false;
 
     for col in (1..map[0].len()).rev() {
-        for row in 0..map.len() {
-            if map[row][col] == Cell::Empty && map[row][col - 1] == Cell::Round {
-                map[row][col] = Cell::Round;
-                map[row][col - 1] = Cell::Empty;
+        for row in map.iter_mut() {
+            if row[col] == Cell::Empty && row[col - 1] == Cell::Round {
+                row[col] = Cell::Round;
+                row[col - 1] = Cell::Empty;
                 any_moves = true;
             }
         }

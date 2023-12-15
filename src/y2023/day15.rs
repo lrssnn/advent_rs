@@ -48,6 +48,7 @@ impl Day for Day15 {
     }
 }
 
+
 fn add_lens(target: &String, focal_length: u8, bx: &mut Vec<Lens>) {
     for lens in bx.iter_mut() {
         if lens.label.eq(target) {
@@ -67,9 +68,9 @@ fn remove_lens(target: &String, bx: &mut Vec<Lens>) {
     }
 }
 
-fn _print_boxes(boxes: &Vec<Vec<Lens>>) {
+fn _print_boxes(boxes: &[Vec<Lens>]) {
     for (i, b) in boxes.iter().enumerate() {
-        if b.len() > 0 {
+        if !b.is_empty() {
             print!("Box {i}: ");
             for lens in b {
                 print!("{lens} ");
@@ -107,11 +108,11 @@ impl Step {
         let hash_code = Step::hash_code(input);
         let id;
         let operation;
-        if input.ends_with('-') {
-            id = input[..input.len() - 1].to_string();
+        if let Some(_id) = input.strip_suffix('-') {
+            id = _id.to_string();
             operation = Operation::Remove;
         } else {
-            let (_id, focal_length) = input.split_once("=").unwrap();
+            let (_id, focal_length) = input.split_once('=').unwrap();
             id = _id.to_string();
             operation = Operation::Insert(focal_length.parse::<u8>().unwrap());
         }
@@ -124,7 +125,7 @@ impl Step {
     fn hash_code(input: &str) -> usize {
         input.chars().fold(0, |hash, e| {
             ((hash + (e as u8) as usize) * 17) % 256
-        }) as usize
+        })
     }
 }
 
