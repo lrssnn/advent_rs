@@ -17,8 +17,8 @@ pub struct Day12
 impl Day12 {
     pub fn new() -> Day12
     {
-        //let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
-        let input = include_str!("../../input/y2023/12");
+        let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
+        //let input = include_str!("../../input/y2023/12");
 
         let rows = input.lines().map(Row::from_str).collect();
             
@@ -32,27 +32,23 @@ impl Day for Day12 {
     fn answer2(&self) -> String { String::from("??") }
 
     fn part1(&mut self) -> String {
-        //let rows = vec![self.rows[5].clone()];
-
-
         // let rows = vec![
-        //     Row::from_str("???????? 2,1")
+        //     Row::from_str("?#?#????.? 2,2,1"),
         // ];
 
-        // for row in &self.rows {
-        //     println!();
-        //     println!("processing {row}");
-        //     let score = Row::count_satisfies(&row.groups, &row.bad_groups, &mut HashMap::new(), 0, &vec![]);
-        //     println!("Score = {score}");
-        //     let mut buf = String::new();
-        //     std::io::stdin().read_line(&mut buf).unwrap();
-        // }
-        
-
-        self.rows.iter()
-            .map(|row| Row::count_satisfies(&row.groups, &row.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0))
-            .sum::<usize>()
-            .to_string()
+        // self.rows.iter()
+        //     .map(|row| 
+        //         {
+        //             let n = Row::count_satisfies(&row.groups, &row.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
+        //             // let o = row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count();
+        //             // if n != o {
+        //             //     println!("Mismatch on row {row} - got {n} should be {o}");
+        //             // }
+        //             n
+        //         })
+        //     .sum::<usize>()
+        //     .to_string()
+        String::new()
     }
 
     fn part2(&mut self) -> String {
@@ -70,7 +66,28 @@ impl Day for Day12 {
         //         .count())
         //     .sum::<usize>()
         //     .to_string()
+
+        let unfolded = self.rows[self.rows.len() - 1]._unfolded();
+        let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
+        println!("{unfolded} = {n}");
+
         String::new()
+
+        // self.rows.iter()
+        //     .enumerate()
+        //     .map(|(i, row)| 
+        //         {
+        //             let unfolded = row._unfolded();
+        //             let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
+        //             println!("{i}/{} : {unfolded} = {n}", self.rows.len());
+        //             // let o = row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count();
+        //             // if n != o {
+        //             //     println!("Mismatch on row {row} - got {n} should be {o}");
+        //             // }
+        //             n
+        //         })
+        //     .sum::<usize>()
+        //     .to_string()
     }
 }
 
@@ -145,32 +162,6 @@ impl Row {
         }
     }
 
-    // fn truncated_row(&self) -> Self {
-    //     // Remove any groups that are fulfilled by the knowns in the group
-    //     println!("truncating {self}");
-    //     let mut groups = vec![];
-    //     let mut bad_groups = vec![];
-    //     // Front
-    //     let mut first_unknown_group = 0;
-    //     let mut first_not_dropped_group_index = 0;
-    //     while self.groups[first_unknown_group].0 != SpringType::Unknown {
-    //         if self.groups[first_unknown_group].0 == SpringType::Broken && self.groups[first_unknown_group + 1].0 != SpringType::Unknown {
-    //             println!("Dropping group {}", self.bad_groups[first_not_dropped_group_index]);
-    //             first_not_dropped_group_index += 1;
-    //         }
-    //     }
-
-    //     groups = self.groups[first_not_dropped_group_index..].to_vec();
-
-
-    //     let springs = Self::springs_from_groups(&groups);
-    //     Row {
-    //         springs,
-    //         groups,
-    //         bad_groups,
-    //     }
-    // }
-
     fn _springs_from_groups(groups: &Vec<Group>) -> Vec<SpringType> {
         let mut r = vec![];
         for group in groups {
@@ -199,6 +190,23 @@ impl Row {
         groups
     }
 
+    fn _deduplicate(&mut self) {
+        println!("Deduplicating: {:?}", self.groups);
+        let mut clean_groups = vec![];
+        let mut i = 0;
+        while i < self.groups.len() {
+            clean_groups.push(self.groups[i]);
+            let last_clean = clean_groups.len() - 1;
+            while i < self.groups.len() - 1 && self.groups[i + 1].0 == clean_groups[last_clean].0 {
+                clean_groups[last_clean].1 += self.groups[i + 1].1;
+                i += 1;
+            }
+            i += 1;
+        }
+        println!("result: {:?}", clean_groups);
+        self.groups = clean_groups;
+    }
+
     fn _unfolded(&self) -> Row {
         let mut unfolded_springs = vec![];
         let mut unfolded_bad_groups = vec![];
@@ -208,14 +216,17 @@ impl Row {
             unfolded_bad_groups.append(&mut self.bad_groups.clone());
         }
 
-        Row {
-            springs: unfolded_springs,
+        let mut unfolded = Row {
+            springs: unfolded_springs.clone(),
             bad_groups: unfolded_bad_groups,
-            groups: self.groups.clone(),
-        }
+            groups: Row::groups_from_springs(&unfolded_springs),
+        };
+        //unfolded.deduplicate();
+        unfolded
     }
 
     fn count_satisfies(groups: &[Group], target_bad_groups: &[usize], unknown_groups_cache: &mut HashMap<usize, Vec<Vec<Group>>>, score_cache: &mut HashMap<(Vec<Group>, Vec<usize>),usize>, indent: usize) -> usize {
+        assert_no_consecutives(groups); 
         if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
             return *score;
         }
@@ -244,7 +255,15 @@ impl Row {
                 Self::count_satisfies(&groups[1..], target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
             },
             SpringType::Broken => {
-                if groups[0].1 < target_bad_groups[0] {
+                if groups.len() > 1 && groups[1].0 == SpringType::Broken {
+                        // Two consecutive broken groups (because of a lookahead above), combine them
+                        let mut candidate = groups.to_vec().clone();
+                        candidate[1].1 += candidate[0].1;
+                        candidate.remove(0); 
+                        _debug_print(indent, format!("With broken combination into {}", _groups_to_string(&candidate)));
+                        Self::count_satisfies(&candidate, target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
+                    } 
+                else if groups[0].1 < target_bad_groups[0] {
                     // We may be able to satisfy if we have unknowns to expand after this group
                     if groups.len() > 1 && groups[1].0 == SpringType::Unknown {
                         let mut candidates = Self::_unknown_group_permutations(groups[1].1, unknown_groups_cache);
@@ -264,13 +283,6 @@ impl Row {
                                     score
                                 }
                             }).sum()
-                    } else if groups.len() > 1 && groups[1].0 == SpringType::Broken {
-                        // Two consecutive broken groups (because of a lookahead above), combine them
-                        let mut candidate = groups.to_vec().clone();
-                        candidate[1].1 += candidate[0].1;
-                        candidate.remove(0); 
-                        _debug_print(indent, format!("With broken combination into {}", _groups_to_string(&candidate)));
-                        Self::count_satisfies(&candidate, target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
                     } else {
                         _debug_print(indent, format!("Group too short and can't expand..."));
                         return 0;
@@ -305,7 +317,8 @@ impl Row {
                         // Do not send consecutive broken groups
                         let last_i = candidate.len() - 1;
                         // TODO This maybe should jsut be groups[1].0 == groups[0].0
-                        if groups.len() > 1 && groups[1].0 == SpringType::Broken && candidate[last_i].0 == SpringType::Broken {
+                        //if groups.len() > 1 && groups[1].0 == SpringType::Broken && candidate[last_i].0 == SpringType::Broken {
+                        if groups.len() > 1 && groups[1].0 == candidate[last_i].0 {
                             candidate[last_i].1 += groups[1].1;
                             candidate.extend_from_slice(&groups[2..]);
                         } else {
@@ -363,7 +376,7 @@ impl Row {
                     bad[i] = SpringType::Broken;
                     vec![good, bad]
                 })
-                .filter(|candidate| self._can_be_satisfied_by(candidate))
+                //.filter(|candidate| self._can_be_satisfied_by(candidate))
                 .collect();
             }
         }
@@ -454,6 +467,18 @@ impl Row {
 
         // return false;
     }
+}
+
+fn assert_no_consecutives(groups: &[(SpringType, usize)]) {
+    // if !groups.is_empty() {
+    //     for i in 0..(groups.len() - 1) {
+    //         if groups[i].0 == groups[i + 1].0 {
+    //             //println!("Consecutive groups here {:?}", &groups.to_vec());
+    //             println!("Consecutive groups here {}", groups[0].0);
+    //             //assert!(false);
+    //         }
+    //     }
+    // }
 }
 
 fn _debug_print(_indent: usize, _message: String) {
