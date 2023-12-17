@@ -1,28 +1,28 @@
-use std::{fmt::Display, collections::HashMap};
+#[allow(unused_imports)]
+use std::{fmt::Display, collections::HashMap, iter::repeat};
 
 //use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::super::day::Day;
 
+type Group = (SpringType, usize);
+
 pub struct Day12
 {
     rows: Vec<Row>,
-    unknown_groups_cache: HashMap<usize, Vec<Vec<(SpringType, usize)>>>,
+    unknown_groups_cache: HashMap<usize, Vec<Vec<Group>>>,
+    score_cache: HashMap<(Vec<Group>, Vec<usize>), usize>,
 }
 
 impl Day12 {
     pub fn new() -> Day12
     {
-        let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
-        //let input = include_str!("../../input/y2023/12");
+        //let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
+        let input = include_str!("../../input/y2023/12");
 
         let rows = input.lines().map(Row::from_str).collect();
             
-        Day12 { rows, unknown_groups_cache: HashMap::new() }
-    }
-
-    fn truncate_rows(&mut self) {
-        // self.rows = self.rows.iter().map(Row::truncated_row).collect()
+        Day12 { rows, unknown_groups_cache: HashMap::new(), score_cache: HashMap::new() }
     }
 }
 
@@ -32,29 +32,38 @@ impl Day for Day12 {
     fn answer2(&self) -> String { String::from("??") }
 
     fn part1(&mut self) -> String {
-        // println!();
-        self.truncate_rows();
-        for row in &self.rows {
-            println!("{row}");
-            println!("{row}: {}", row.resolve_unknowns(&mut self.unknown_groups_cache).iter().filter(|c| row.is_satisfied_by(c)).count());
-            println!("Yields: ");
-            for s in row.resolve_unknowns(&mut self.unknown_groups_cache).iter() {
-                println!("  {}: {}", _springs_to_string(s), row.is_satisfied_by(s));
-            }
-            let mut buf = String::new();
-            std::io::stdin().read_line(&mut buf).unwrap();
-        }
+        //let rows = vec![self.rows[5].clone()];
+
+
+        // let rows = vec![
+        //     Row::from_str("???????? 2,1")
+        // ];
+
+        // for row in &self.rows {
+        //     println!();
+        //     println!("processing {row}");
+        //     let score = Row::count_satisfies(&row.groups, &row.bad_groups, &mut HashMap::new(), 0, &vec![]);
+        //     println!("Score = {score}");
+        //     let mut buf = String::new();
+        //     std::io::stdin().read_line(&mut buf).unwrap();
+        // }
+        
 
         self.rows.iter()
-            .map(|row| row.resolve_unknowns(&mut self.unknown_groups_cache).iter()
-                .filter(|c| row.is_satisfied_by(c))
-                .count())
+            .map(|row| Row::count_satisfies(&row.groups, &row.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0))
             .sum::<usize>()
             .to_string()
-        //String::new()
     }
 
     fn part2(&mut self) -> String {
+        // let mut cache: Vec<_> = self.score_cache.iter().collect();
+        // cache.sort_by_cached_key(|(k, _v)| _groups_to_string(&k.0).len());
+        // for (k, v) in cache {
+        //     if v > &0 {
+        //         println!("{} {:?} = {}", _groups_to_string(&k.0), k.1, v);
+        //         _wait();
+        //     }
+        // }
         // self.rows.par_iter()
         //     .map(|row| row.unfolded().resolve_unknowns().iter()
         //         .filter(|c| row.is_satisfied_by(c))
@@ -65,7 +74,7 @@ impl Day for Day12 {
     }
 }
 
-fn _group_to_string(input: &(SpringType, usize)) -> String {
+fn _group_to_string(input: &Group) -> String {
     let mut r = String::new();
     for _ in 0..input.1 {
         r += &input.0.to_string();
@@ -81,7 +90,7 @@ fn _springs_to_string(input: &[SpringType]) -> String {
     r
 }
 
-fn _groups_to_string(input: &Vec<(SpringType, usize)>) -> String {
+fn _groups_to_string(input: &Vec<Group>) -> String {
     let mut r = String::new();
     for group in input {
         r += &_group_to_string(group);
@@ -89,7 +98,7 @@ fn _groups_to_string(input: &Vec<(SpringType, usize)>) -> String {
     r
 }
 
-fn _vec_of_group_vec_to_string(input: &Vec<Vec<(SpringType, usize)>>) -> String {
+fn _vec_of_group_vec_to_string(input: &Vec<Vec<Group>>) -> String {
     let mut r = String::new();
     for group in input {
         r += &("->".to_owned() + &_groups_to_string(group) + "\n");
@@ -97,7 +106,7 @@ fn _vec_of_group_vec_to_string(input: &Vec<Vec<(SpringType, usize)>>) -> String 
     r
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 enum SpringType {
     Operational,
     Broken,
@@ -119,7 +128,7 @@ impl SpringType {
 struct Row {
     #[allow(dead_code)]
     springs: Vec<SpringType>,
-    groups: Vec<(SpringType, usize)>,
+    groups: Vec<Group>,
     bad_groups: Vec<usize>,
 }
 
@@ -162,7 +171,7 @@ impl Row {
     //     }
     // }
 
-    fn _springs_from_groups(groups: &Vec<(SpringType, usize)>) -> Vec<SpringType> {
+    fn _springs_from_groups(groups: &Vec<Group>) -> Vec<SpringType> {
         let mut r = vec![];
         for group in groups {
             for _ in 0..group.1 {
@@ -172,7 +181,7 @@ impl Row {
         r
     }
 
-    fn groups_from_springs(springs: &Vec<SpringType>) -> Vec<(SpringType, usize)> {
+    fn groups_from_springs(springs: &Vec<SpringType>) -> Vec<Group> {
         let mut groups = vec![];
 
         let mut current_group = springs[0];
@@ -206,7 +215,115 @@ impl Row {
         }
     }
 
-    fn resolve_unknowns(&self, _cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<SpringType>> {
+    fn count_satisfies(groups: &[Group], target_bad_groups: &[usize], unknown_groups_cache: &mut HashMap<usize, Vec<Vec<Group>>>, score_cache: &mut HashMap<(Vec<Group>, Vec<usize>),usize>, indent: usize) -> usize {
+        if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
+            return *score;
+        }
+        _debug_print(indent, format!("Evaluating '{}' against  {target_bad_groups:?}", _groups_to_string(&groups.to_vec())));
+        if groups.is_empty() {
+            if target_bad_groups.is_empty() {
+                _debug_print(indent, format!("Valid path"));
+                return 1;
+            } else {
+                _debug_print(indent, format!("Failed to satisfy"));
+                return 0;
+            }
+        }
+
+        if target_bad_groups.is_empty() {
+            if groups.iter().any(|group| group.0 == SpringType::Broken) {
+                _debug_print(indent, format!("Leftover broken"));
+                return 0;
+            }
+        }
+
+        let score = match groups[0].0 {
+            SpringType::Operational => {
+                // Drop the operational group
+                //_debug_print(indent, format!("Dropping leading dots..."));
+                Self::count_satisfies(&groups[1..], target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
+            },
+            SpringType::Broken => {
+                if groups[0].1 < target_bad_groups[0] {
+                    // We may be able to satisfy if we have unknowns to expand after this group
+                    if groups.len() > 1 && groups[1].0 == SpringType::Unknown {
+                        let mut candidates = Self::_unknown_group_permutations(groups[1].1, unknown_groups_cache);
+                        candidates.iter_mut()
+                            .map(|candidate| {
+                                // This is only helpful if the candidate starts with a broken group
+                                if candidate[0].0 != SpringType::Broken {
+                                    0
+                                } else {
+                                    // Combine groups[0] + [candidate] + the rest of groups
+                                    candidate[0].1 += groups[0].1;
+                                    candidate.extend_from_slice(&groups[2..]);
+                                    // We have used groups[0] (the broken group) and groups[1] the unkown group
+                                    //_debug_print(indent, format!("With combination into {}", _groups_to_string(candidate)));
+                                    let score = Self::count_satisfies(&candidate, target_bad_groups, unknown_groups_cache, score_cache, indent + 1);
+                                    _debug_print(indent, format!("Subproblem {} {:?} score {}", _groups_to_string(candidate), target_bad_groups, score));
+                                    score
+                                }
+                            }).sum()
+                    } else if groups.len() > 1 && groups[1].0 == SpringType::Broken {
+                        // Two consecutive broken groups (because of a lookahead above), combine them
+                        let mut candidate = groups.to_vec().clone();
+                        candidate[1].1 += candidate[0].1;
+                        candidate.remove(0); 
+                        _debug_print(indent, format!("With broken combination into {}", _groups_to_string(&candidate)));
+                        Self::count_satisfies(&candidate, target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
+                    } else {
+                        _debug_print(indent, format!("Group too short and can't expand..."));
+                        return 0;
+                    }
+                } else if groups[0].1 == target_bad_groups[0] {
+                    _debug_print(indent, format!("Consuming broken group..."));
+                    // When consuming a broken group, if the next group is unknown, we must force the first choice to be a dot
+                    let mut new_groups = groups[1..].to_vec().clone();
+                    if !new_groups.is_empty() && new_groups[0].0 == SpringType::Unknown {
+                        if new_groups[0].1 == 1 {
+                            new_groups[0].0 = SpringType::Operational;
+                        } else {
+                            new_groups[0].1 -= 1;
+                            new_groups.insert(0, (SpringType::Operational, 1));
+                        }
+                    }
+                    Self::count_satisfies(&new_groups, &target_bad_groups[1..], unknown_groups_cache, score_cache, indent + 1)
+                } else {
+                    // The broken group is longer than the first target group
+                    _debug_print(indent, format!("Group too long"));
+                    return 0;
+                }
+            },
+            SpringType::Unknown => {
+                // Check each possible expansion of the unknown groups
+                let mut candidates = Self::_unknown_group_permutations(groups[0].1, unknown_groups_cache);
+                _debug_print(indent, format!("Expanded {} unknowns...", groups[0].1));
+
+                candidates.iter_mut()
+                    .map(|candidate| {
+                        _debug_print(indent, format!("\nNew choice: {}", _groups_to_string(candidate)));
+                        // Do not send consecutive broken groups
+                        let last_i = candidate.len() - 1;
+                        // TODO This maybe should jsut be groups[1].0 == groups[0].0
+                        if groups.len() > 1 && groups[1].0 == SpringType::Broken && candidate[last_i].0 == SpringType::Broken {
+                            candidate[last_i].1 += groups[1].1;
+                            candidate.extend_from_slice(&groups[2..]);
+                        } else {
+                            candidate.extend_from_slice(&groups[1..]);
+                        }
+                        //_wait();
+                        Self::count_satisfies(&candidate, target_bad_groups, unknown_groups_cache, score_cache, indent + 1)
+                    }).sum()
+            }
+        };
+
+        _debug_print(indent, format!("Score {score} for {} against {target_bad_groups:?}", _groups_to_string(&groups.to_vec())));
+
+        score_cache.insert((groups.to_vec(), target_bad_groups.to_vec()), score);
+        score
+    }
+
+    fn _resolve_unknowns(&self, _cache: &mut HashMap<usize, Vec<Vec<Group>>>) -> Vec<Vec<SpringType>> {
         // let mut result = vec![self.groups.clone()];
 
         // println!("Resolve Unknowns of {}", groups_to_string(&self.groups));
@@ -246,7 +363,7 @@ impl Row {
                     bad[i] = SpringType::Broken;
                     vec![good, bad]
                 })
-                .filter(|candidate| self.can_be_satisfied_by(candidate))
+                .filter(|candidate| self._can_be_satisfied_by(candidate))
                 .collect();
             }
         }
@@ -254,7 +371,8 @@ impl Row {
         result
     }
 
-    fn _unknown_group_permutations(length: usize, cache: &mut HashMap<usize, Vec<Vec<(SpringType, usize)>>>) -> Vec<Vec<(SpringType, usize)>> {
+    fn _unknown_group_permutations(length: usize, cache: &mut HashMap<usize, Vec<Vec<Group>>>) -> Vec<Vec<Group>> {
+        // TODO can we omit all dot answers here? i.e. '...' is that ever going to change the answer...
         if cache.contains_key(&length) {
             return cache.get(&length).unwrap().clone()
         }
@@ -265,7 +383,7 @@ impl Row {
 
         let rest_perms = Self::_unknown_group_permutations(length - 1, cache);
 
-        let resolve_with = |spring_type, perms: &Vec<(SpringType, usize)>| {
+        let resolve_with = |spring_type, perms: &Vec<Group>| {
             // This is hideous
             let mut result = perms.clone();
             let last_i = result.len() - 1;
@@ -286,7 +404,7 @@ impl Row {
         good
     }
 
-    fn can_be_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
+    fn _can_be_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
         let groups = Row::groups_from_springs(candidate);
         let bad_groups = groups.iter().filter(|g| g.0 != SpringType::Operational).collect::<Vec<_>>();
 
@@ -300,7 +418,7 @@ impl Row {
                 return true;
             }
             if bad_groups[i].1 != self.bad_groups[i] {
-                println!("Disqualifying {} as candidate for {self}", _springs_to_string(candidate));
+                //println!("Disqualifying {} as candidate for {self}", _springs_to_string(candidate));
                 return false;
             }
         }
@@ -308,7 +426,7 @@ impl Row {
         true
     }
 
-    fn is_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
+    fn _is_satisfied_by(&self, candidate: &Vec<SpringType>) -> bool {
         let groups = Row::groups_from_springs(candidate);
         let bad_groups = groups.iter().filter(|g| g.0 == SpringType::Broken).collect::<Vec<_>>();
 
@@ -336,6 +454,17 @@ impl Row {
 
         // return false;
     }
+}
+
+fn _debug_print(_indent: usize, _message: String) {
+    // println!("{}{}", 
+    //     repeat(' ').take(_indent).fold(String::new(), |acc, e| acc + &e.to_string()),
+    //     _message);
+}
+
+fn _wait() {
+    let mut buf = String::new();
+    std::io::stdin().read_line(&mut buf).unwrap();
 }
 
 impl Display for Row {

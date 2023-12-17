@@ -7,6 +7,7 @@ pub struct Day15
     steps: Vec<Step>,
 }
 
+#[allow(dead_code)]
 impl Day15 {
     pub fn new() -> Day15
     {

@@ -32,6 +32,18 @@ impl<T: PartialEq> PartialEq<(T, T)> for Coord<T> {
     }
 }
 
+// impl Add<Direction> for Coord<usize> {
+//     fn add(self, rhs: Direction) -> Self {
+//         let offset = rhs.offset();
+//         Coord {
+//             x: (self.x as isize + offset.0) as usize,
+//             y: (self.y as isize + offset.1) as usize,
+//         }
+//     }
+
+//     type Output = Self;
+// }
+
 impl<T> Add<Direction> for Coord<T> 
 where isize: From<T>, T: TryFrom<isize> {
     fn add(self, rhs: Direction) -> Self {

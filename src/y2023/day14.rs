@@ -7,6 +7,7 @@ pub struct Day14
     map: Vec<Vec<Cell>>,
 }
 
+#[allow(dead_code)]
 impl Day14 {
     pub fn new() -> Day14
     {
