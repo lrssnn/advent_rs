@@ -26,6 +26,18 @@ isize: From<T>
     }
 }
 
+impl Coord<usize> {
+    pub fn try_move(self, direction: Direction, valid_x: (usize, usize), valid_y: (usize, usize)) -> Option<Coord<usize>> {
+        match direction {
+            Direction::Up => if self.y == valid_y.0 { None } else { Some(Coord { x: self.x, y: self.y - 1 })}
+            Direction::Down => if self.y == valid_y.1 { None } else { Some(Coord { x: self.x, y: self.y + 1})}
+            Direction::Left => if self.x == valid_x.0 { None } else { Some(Coord { x: self.x - 1, y: self.y })}
+            Direction::Right => if self.x == valid_x.1 { None } else { Some(Coord { x: self.x + 1, y: self.y})}
+            Direction::None => Some(self),
+        }
+    }
+}
+
 impl<T: PartialEq> PartialEq<(T, T)> for Coord<T> {
     fn eq(&self, other: &(T, T)) -> bool {
         self.x == other.0 && self.y == other.1

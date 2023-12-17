@@ -216,7 +216,7 @@ impl Row {
             unfolded_bad_groups.append(&mut self.bad_groups.clone());
         }
 
-        let mut unfolded = Row {
+        let unfolded = Row {
             springs: unfolded_springs.clone(),
             bad_groups: unfolded_bad_groups,
             groups: Row::groups_from_springs(&unfolded_springs),
@@ -469,7 +469,7 @@ impl Row {
     }
 }
 
-fn assert_no_consecutives(groups: &[(SpringType, usize)]) {
+fn assert_no_consecutives(_groups: &[(SpringType, usize)]) {
     // if !groups.is_empty() {
     //     for i in 0..(groups.len() - 1) {
     //         if groups[i].0 == groups[i + 1].0 {
