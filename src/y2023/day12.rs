@@ -5,13 +5,13 @@ use std::{fmt::Display, collections::HashMap, iter::repeat};
 
 use super::super::day::Day;
 
-type Group = (SpringType, usize);
+type Group = (SpringType, u16);
 
 pub struct Day12
 {
     rows: Vec<Row>,
-    unknown_groups_cache: HashMap<usize, Vec<Vec<Group>>>,
-    score_cache: HashMap<(Vec<Group>, Vec<usize>), usize>,
+    unknown_groups_cache: HashMap<u16, Vec<Vec<Group>>>,
+    score_cache: HashMap<(Vec<Group>, Vec<u16>), usize>,
 }
 
 impl Day12 {
@@ -74,21 +74,27 @@ impl Day for Day12 {
         // println!("{unfolded} = {n}");
         // //println!("Original: {o}");
 
-        self.rows.iter()
+        let score = self.rows.iter()
             .enumerate()
             .map(|(i, row)| 
                 {
                     let unfolded = row._unfolded();
-                    let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
-                    println!("{i}/{} : {unfolded} = {n}", self.rows.len());
-                    // let o = row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count();
-                    // if n != o {
-                    //     println!("Mismatch on row {row} - got {n} should be {o}");
+                    println!("{i}/{} : {unfolded}", self.rows.len());
+                    // if i == 63 || i == 341 || i == 762 { 
+                    //     unfolded._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| unfolded._is_satisfied_by(c)).count()
+                    // } else {
+                        Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut HashMap::new(), 0)
+                        //row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count()
+                        // if n != o {
+                        //     println!("Mismatch on row {row} - got {n} should be {o}");
+                        // }
                     // }
-                    n
                 })
             .sum::<usize>()
-            .to_string()
+            .to_string();
+
+        if score <= 1355490899890  { println!("TOO LOW")}
+        score
     }
 }
 
@@ -147,7 +153,7 @@ struct Row {
     #[allow(dead_code)]
     springs: Vec<SpringType>,
     groups: Vec<Group>,
-    bad_groups: Vec<usize>,
+    bad_groups: Vec<u16>,
 }
 
 impl Row {
@@ -155,7 +161,7 @@ impl Row {
         let (springs, rest) = input.split_once(' ').unwrap();
         let springs = springs.chars().map(SpringType::from_char).collect();
         let groups = Row::groups_from_springs(&springs);
-        let bad_groups = rest.split(',').map(|s| s.parse::<usize>().unwrap()).collect();
+        let bad_groups = rest.split(',').map(|s| s.parse::<u16>().unwrap()).collect();
         Row { 
             springs, 
             groups, 
@@ -227,11 +233,11 @@ impl Row {
         unfolded
     }
 
-    fn count_satisfies(groups: &[Group], target_bad_groups: &[usize], unknown_groups_cache: &mut HashMap<usize, Vec<Vec<Group>>>, score_cache: &mut HashMap<(Vec<Group>, Vec<usize>),usize>, indent: usize) -> usize {
+    fn count_satisfies(groups: &[Group], target_bad_groups: &[u16], unknown_groups_cache: &mut HashMap<u16, Vec<Vec<Group>>>, score_cache: &mut HashMap<(Vec<Group>, Vec<u16>),usize>, indent: u16) -> usize {
         assert_no_consecutives(groups); 
-        // if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
-        //     return *score;
-        // }
+        if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
+            return *score;
+        }
         _debug_print(indent, format!("Evaluating '{}' against  {target_bad_groups:?}", _groups_to_string(&groups.to_vec())));
         if groups.is_empty() {
             if target_bad_groups.is_empty() {
@@ -338,7 +344,7 @@ impl Row {
         score
     }
 
-    fn _resolve_unknowns(&self, _cache: &mut HashMap<usize, Vec<Vec<Group>>>) -> Vec<Vec<SpringType>> {
+    fn _resolve_unknowns(&self, _cache: &mut HashMap<u16, Vec<Vec<Group>>>) -> Vec<Vec<SpringType>> {
         // let mut result = vec![self.groups.clone()];
 
         // println!("Resolve Unknowns of {}", groups_to_string(&self.groups));
@@ -386,7 +392,7 @@ impl Row {
         result
     }
 
-    fn _unknown_group_permutations(length: usize, cache: &mut HashMap<usize, Vec<Vec<Group>>>) -> Vec<Vec<Group>> {
+    fn _unknown_group_permutations(length: u16, cache: &mut HashMap<u16, Vec<Vec<Group>>>) -> Vec<Vec<Group>> {
         // TODO can we omit all dot answers here? i.e. '...' is that ever going to change the answer...
         if cache.contains_key(&length) {
             return cache.get(&length).unwrap().clone()
@@ -471,7 +477,7 @@ impl Row {
     }
 }
 
-fn assert_no_consecutives(_groups: &[(SpringType, usize)]) {
+fn assert_no_consecutives(_groups: &[(SpringType, u16)]) {
     // if !groups.is_empty() {
     //     for i in 0..(groups.len() - 1) {
     //         if groups[i].0 == groups[i + 1].0 {
@@ -483,7 +489,7 @@ fn assert_no_consecutives(_groups: &[(SpringType, usize)]) {
     // }
 }
 
-fn _debug_print(_indent: usize, _message: String) {
+fn _debug_print(_indent: u16, _message: String) {
     // println!("{}{}", 
     //     repeat(' ').take(_indent).fold(String::new(), |acc, e| acc + &e.to_string()),
     //     _message);
