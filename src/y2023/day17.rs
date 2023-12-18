@@ -1,8 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use rayon::current_num_threads;
-
-use crate::{search::astar_search, two_dimensional::direction::Direction, two_dimensional::coord::Coord as GenericCoord};
+use crate::{two_dimensional::direction::Direction, two_dimensional::coord::Coord as GenericCoord};
 
 type Coord = GenericCoord<usize>;
 

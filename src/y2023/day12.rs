@@ -11,6 +11,7 @@ pub struct Day12
 {
     rows: Vec<Row>,
     unknown_groups_cache: HashMap<u16, Vec<Vec<Group>>>,
+    #[allow(dead_code)]
     score_cache: HashMap<(Vec<Group>, Vec<u16>), usize>,
 }
 
@@ -90,11 +91,10 @@ impl Day for Day12 {
                         // }
                     // }
                 })
-            .sum::<usize>()
-            .to_string();
+            .sum::<usize>();
 
         if score <= 1355490899890  { println!("TOO LOW")}
-        score
+        score.to_string()
     }
 }
 

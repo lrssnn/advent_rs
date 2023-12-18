@@ -80,8 +80,10 @@ where isize: From<T>, T: TryFrom<isize> + std::ops::Add<Output = T> {
 impl<T> Add<(isize, isize)> for Coord<T> 
 where isize: From<T>, T: TryFrom<isize> {
     fn add(self, rhs: (isize, isize)) -> Self {
-        let x: T = ((Into::<isize>::into(self.x)) + rhs.0).max(0).try_into().ok().unwrap();
-        let y: T = ((Into::<isize>::into(self.y)) + rhs.1).max(0).try_into().ok().unwrap();
+        // TODO I probably broke an/some old puzzle by changing this to not clip at 0
+        // but it doesn't make sense, should be an explicit clipped add
+        let x: T = ((Into::<isize>::into(self.x)) + rhs.0).try_into().ok().unwrap();
+        let y: T = ((Into::<isize>::into(self.y)) + rhs.1).try_into().ok().unwrap();
         Coord { x, y }
     }
 
