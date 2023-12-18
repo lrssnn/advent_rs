@@ -17,8 +17,8 @@ pub struct Day12
 impl Day12 {
     pub fn new() -> Day12
     {
-        let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
-        //let input = include_str!("../../input/y2023/12");
+        //let input = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1";
+        let input = include_str!("../../input/y2023/12");
 
         let rows = input.lines().map(Row::from_str).collect();
             
@@ -67,27 +67,28 @@ impl Day for Day12 {
         //     .sum::<usize>()
         //     .to_string()
 
-        let unfolded = self.rows[self.rows.len() - 1]._unfolded();
-        let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
-        println!("{unfolded} = {n}");
+        // let unfolded = self.rows[self.rows.len() - 1]._unfolded();
+        // println!("{:?}", unfolded.groups);
+        // let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
+        // //let o = unfolded._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| unfolded._is_satisfied_by(c)).count();
+        // println!("{unfolded} = {n}");
+        // //println!("Original: {o}");
 
-        String::new()
-
-        // self.rows.iter()
-        //     .enumerate()
-        //     .map(|(i, row)| 
-        //         {
-        //             let unfolded = row._unfolded();
-        //             let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
-        //             println!("{i}/{} : {unfolded} = {n}", self.rows.len());
-        //             // let o = row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count();
-        //             // if n != o {
-        //             //     println!("Mismatch on row {row} - got {n} should be {o}");
-        //             // }
-        //             n
-        //         })
-        //     .sum::<usize>()
-        //     .to_string()
+        self.rows.iter()
+            .enumerate()
+            .map(|(i, row)| 
+                {
+                    let unfolded = row._unfolded();
+                    let n = Row::count_satisfies(&unfolded.groups, &unfolded.bad_groups, &mut self.unknown_groups_cache, &mut self.score_cache, 0);
+                    println!("{i}/{} : {unfolded} = {n}", self.rows.len());
+                    // let o = row._resolve_unknowns(&mut HashMap::new()).iter().filter(|c| row._is_satisfied_by(c)).count();
+                    // if n != o {
+                    //     println!("Mismatch on row {row} - got {n} should be {o}");
+                    // }
+                    n
+                })
+            .sum::<usize>()
+            .to_string()
     }
 }
 
@@ -210,9 +211,10 @@ impl Row {
     fn _unfolded(&self) -> Row {
         let mut unfolded_springs = vec![];
         let mut unfolded_bad_groups = vec![];
-        for _ in 0..5 {
+        const REPEATS: usize = 5;
+        for repeat in 0..REPEATS {
             unfolded_springs.append(&mut self.springs.clone());
-            unfolded_springs.push(SpringType::Unknown);
+            if repeat != REPEATS - 1 { unfolded_springs.push(SpringType::Unknown); }
             unfolded_bad_groups.append(&mut self.bad_groups.clone());
         }
 
@@ -227,9 +229,9 @@ impl Row {
 
     fn count_satisfies(groups: &[Group], target_bad_groups: &[usize], unknown_groups_cache: &mut HashMap<usize, Vec<Vec<Group>>>, score_cache: &mut HashMap<(Vec<Group>, Vec<usize>),usize>, indent: usize) -> usize {
         assert_no_consecutives(groups); 
-        if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
-            return *score;
-        }
+        // if let Some(score) = score_cache.get(&(groups.to_vec(), target_bad_groups.to_vec())) {
+        //     return *score;
+        // }
         _debug_print(indent, format!("Evaluating '{}' against  {target_bad_groups:?}", _groups_to_string(&groups.to_vec())));
         if groups.is_empty() {
             if target_bad_groups.is_empty() {
