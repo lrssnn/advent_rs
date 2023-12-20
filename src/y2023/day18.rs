@@ -1,4 +1,4 @@
-use std::{fmt::Display, collections::{HashSet, HashMap}};
+use std::{fmt::Display, collections::HashMap};
 
 use crate::two_dimensional::{direction::Direction, coord::Coord as GenericCoord};
 
@@ -33,13 +33,35 @@ impl Day for Day18 {
         //     println!("{instruction}");
         // }
         let points = points_from_instructions(&self.instructions);
-        //print_points(&points);
-        count_points(&points).to_string()
-        //String::new()
+        //_print_points(&points);
+        // for row in points.keys() {
+
+        //     let right = evaluate_row_dumb(*row, &points, false);
+        //     let new = evaluate_row((row, points.get(&row).unwrap()), false);
+
+        //     if right != new {
+        //         println!("{new} - should be {right}");
+        //         _print_row(*row, &points);
+        //         evaluate_row_dumb(*row, &points, true);
+        //         evaluate_row((row, points.get(&row).unwrap()), true);
+        //         println!();
+        //     }
+        // }
+
+        count_points_dumb(&points).to_string()
     }
 
+    #[allow(unreachable_code)]
     fn part2(&mut self) -> String {
-        String::new()
+        println!();
+        let decoded = self.instructions.iter().map(|i| {
+            let decoded = i.decoded();
+            //println!("{i} -> {decoded}");
+            decoded
+        }).collect::<Vec<_>>();
+        let points = points_from_instructions(&decoded);
+        //print_points(&points);
+        count_points_dumb(&points).to_string()
     }
 }
 
@@ -49,7 +71,7 @@ fn points_from_instructions(instructions: &[Instruction]) -> HashMap<isize, Vec<
 
     result.insert(0, vec![0]);
 
-    for instruction in instructions {
+    for (i, instruction) in instructions.iter().enumerate() {
         for _step in 0..instruction.distance {
             current_loc = current_loc + instruction.direction;
 
@@ -59,40 +81,85 @@ fn points_from_instructions(instructions: &[Instruction]) -> HashMap<isize, Vec<
                 result.insert(current_loc.y, vec![current_loc.x]);
             }
         }
+        print!("\rProcessed instruction {i} out of {}   ", instructions.len());
     }
+    println!();
     result
 }
 
-fn count_points(points: &HashMap<isize, Vec<isize>>) -> usize {
-
+fn count_points_dumb(points: &HashMap<isize, Vec<isize>>) -> usize {
     let min_y = *points.keys().min().unwrap();
-    let min_x = *points.values().min_by_key(|xs| xs.iter().min().unwrap()).unwrap().iter().min().unwrap();
-
     let max_y = *points.keys().max().unwrap();
-    let max_x = *points.values().max_by_key(|xs| xs.iter().max().unwrap()).unwrap().iter().max().unwrap();
 
     let mut total = 0;
+    let rows = max_y - min_y;
     for y in min_y..=max_y {
-        let mut crossings = 0;
-        for x in min_x..=max_x {
-            if points.get(&y).unwrap().iter().any(|&e| e == x) {
-                // print!("#");
-                total += 1;
-                if points.get(&(y - 1)).unwrap_or(&Vec::new()).iter().any(|&e| e == x) {
-                    crossings += 1;
-                }
-            } else {
-                if crossings % 2 == 1 {
-                    total += 1;
-                    // print!("x");
-                } else {
-                    // print!(".");
-                };
-            }
-        }
-        // println!();
+        total += evaluate_row_dumb(y, points, false);
+        print!("\r{}/{rows}", y - min_y);
     }
     total
+}
+
+fn evaluate_row_dumb(y: isize, points: &HashMap<isize, Vec<isize>>, print: bool) -> usize {
+    let min_x = *points.values().min_by_key(|xs| xs.iter().min().unwrap()).unwrap().iter().min().unwrap();
+    let max_x = *points.values().max_by_key(|xs| xs.iter().max().unwrap()).unwrap().iter().max().unwrap();
+
+    let mut crossings = 0;
+    let mut total = 0;
+    for x in min_x..=max_x {
+        if points.get(&y).unwrap().iter().any(|&e| e == x) {
+            if print { print!("#"); }
+            total += 1;
+            if points.get(&(y - 1)).unwrap_or(&Vec::new()).iter().any(|&e| e == x) {
+                crossings += 1;
+            }
+        } else {
+            if crossings % 2 == 1 {
+                total += 1;
+                if print { print!("x"); }
+            } else {
+                if print { print!("."); }
+            };
+        }
+    }
+    if print { println!(); }
+    total
+}
+
+fn _count_points(points: &HashMap<isize, Vec<isize>>) -> usize {
+    points.iter().map(|row| _evaluate_row(row, false)).sum()
+}
+
+fn _evaluate_row(row: (&isize, &Vec<isize>), print: bool) -> usize {
+    let mut vals = row.1.clone();
+    vals.sort();
+    vals.dedup();
+    if print { println!("{vals:?}"); }
+    // find the contiguous groups as (start, end)
+    let mut groups = vec![];
+    let mut this_group_start = 0;
+    for i in 0..(vals.len() - 1) {
+        if vals[i + 1] - vals[i] <= 1 {
+            // Contiguous
+        } else {
+            groups.push((this_group_start, i));
+            this_group_start = i + 1;
+        }
+    }
+
+    groups.push((this_group_start, vals.len() - 1));
+
+    if print { println!("{groups:?}"); }
+
+    let mut total = 0;
+    for i in (0..groups.len()).step_by(2) {
+        if i + 1 == groups.len() {continue;}
+        let this_group = groups[i];
+        let next_group = groups[i + 1];
+        if print { println!("-> {} to {} & {} to {}", vals[this_group.0], vals[this_group.1], vals[next_group.0], vals[next_group.1]); }
+        total += vals[next_group.0] - vals[this_group.1] - 1;
+    }
+    total as usize + vals.len() // TODO WRONG!
 }
 
 fn _print_points(points: &HashMap<isize, Vec<isize>>) {
@@ -111,13 +178,30 @@ fn _print_points(points: &HashMap<isize, Vec<isize>>) {
                 print!(".");
             }
         }
-        println!();
+        //println!("\nScore: {}\n", evaluate_row((&y, &points.get(&y).unwrap())));
     }
 }
 
+fn _print_row(y: isize, points: &HashMap<isize, Vec<isize>>) {
+    // gross!
+    let min_x = *points.values().min_by_key(|xs| xs.iter().min().unwrap()).unwrap().iter().min().unwrap();
+
+    let max_x = *points.values().max_by_key(|xs| xs.iter().max().unwrap()).unwrap().iter().max().unwrap();
+
+    for x in min_x..=max_x {
+        if points.get(&y).unwrap().iter().any(|&e| e == x) {
+            print!("#");
+        } else {
+            print!(".");
+        }
+    }
+    println!();
+}
+
+
 struct Instruction {
     direction: Direction,
-    distance: u16,
+    distance: usize,
     colour: String,
 }
 
@@ -126,9 +210,9 @@ impl Instruction {
         let mut parts = input.split(' ');
         let direction = match parts.next().unwrap() {
             "R" => Direction::Right,
+            "D" => Direction::Down,
             "L" => Direction::Left,
             "U" => Direction::Up,
-            "D" => Direction::Down,
             _ => panic!("Unknown direction"),
         };
 
@@ -137,6 +221,20 @@ impl Instruction {
         let colour = parts.next().unwrap().to_string();
 
         Instruction { direction, distance, colour }
+    }
+
+    fn decoded(&self) -> Self {
+        // The initial parse leaves the brackets
+        let distance = usize::from_str_radix(&self.colour[2..7], 16).unwrap();
+        let direction = match &self.colour[7..8] {
+            "0" => Direction::Right,
+            "1" => Direction::Down,
+            "2" => Direction::Left,
+            "3" => Direction::Up,
+            _ => panic!("Unknown direction"),
+        };
+
+        Instruction { direction, distance, colour: self.colour.to_string() }
     }
 }
 
