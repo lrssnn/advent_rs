@@ -1,4 +1,6 @@
-use std::{collections::{HashMap, VecDeque}, fmt::Display};
+use std::{collections::{HashMap, VecDeque, HashSet}, fmt::Display};
+
+use num::Integer;
 
 use super::super::day::Day;
 
@@ -26,82 +28,98 @@ impl Day20 {
             module.mode = ModuleType::Conjunction(memory);
         }
     }
+}
 
-    fn push_button_x(&mut self, x: usize) -> (usize, usize) {
-        let mut lows = 0;
-        let mut highs = 0;
-        for _ in 0..x {
-            let (l, h, _) = self.push_button();
-            lows += l;
-            highs += h;
-        }
-        (lows, highs)
+fn push_button_x(modules: &mut HashMap<String, Module>, x: usize) -> (usize, usize) {
+    let mut lows = 0;
+    let mut highs = 0;
+    for _ in 0..x {
+        let (l, h, _) = push_button(modules);
+        lows += l;
+        highs += h;
     }
+    (lows, highs)
+}
 
-    fn push_button_to_rx(&mut self) -> usize {
-        let mut x = 0;
+fn push_button_to_rx(modules: &mut HashMap<String, Module>) -> usize {
+    // Identify the inputs to rx
+    let rx_inputs = modules.values().filter(|module| module.outputs.contains(&"rx".to_string())).collect::<Vec<_>>();
+    assert_eq!(1, rx_inputs.len());
+    if let ModuleType::Conjunction(memory) = rx_inputs[0].mode.clone() {
+        // Yes, we are tying ourselves to our input... but... who cares
+        let mut conjunction_targets = memory.keys().map(|target| (target.to_string(), 0)).collect::<HashMap<_, _>>();
+
+        // We need to find the cycle length of each of these inputs and then LCM them together
+        let mut presses = 0;
         loop {
-            x += 1;
-            let (_, _, sent_rx) = self.push_button();
-            if sent_rx {
-                return x;
-            }
-        }
-    }
-
-    fn push_button(&mut self) -> (usize, usize, bool) {
-        let mut lows = 1;
-        let mut highs = 0;
-        let mut message_queue = VecDeque::new();
-        let mut sent_rx = false;
-        message_queue.push_back(Message { sender: "button".to_string(), target: "broadcaster".to_string(), pulse: false });
-        while let Some(message) = message_queue.pop_front() {
-            if let Some(target) = self.modules.get_mut(&message.target) {
-                for m in target.handle_pulse(message.sender, message.pulse) {
-                    if m.pulse {
-                        highs += 1;
-                    } else {
-                        lows += 1;
-                        if m.target.eq("rx") {
-                            sent_rx = true;
-                        }
-                    }
-
-                    message_queue.push_back(m);
+            presses+= 1;
+            let mut check_if_answer = false;
+            let (_, _, high_senders) = push_button(modules);
+            for key in high_senders.iter() {
+                if conjunction_targets.contains_key(key) && *conjunction_targets.get(key).unwrap() == 0 {
+                    check_if_answer = true;
+                    conjunction_targets.insert(key.to_string(), presses); 
                 }
+            } 
+
+            if check_if_answer && conjunction_targets.values().all(|&v| v != 0) {
+                return conjunction_targets.values().fold(1, |acc, e| acc.lcm(e))
             }
         }
-        (lows, highs, sent_rx)
     }
+    0
+}
+
+fn push_button(modules: &mut HashMap<String, Module>) -> (usize, usize, HashSet<String>) {
+    let mut lows = 1;
+    let mut highs = 0;
+    let mut message_queue = VecDeque::new();
+    let mut high_senders = HashSet::new();
+    message_queue.push_back(Message { sender: "button".to_string(), target: "broadcaster".to_string(), pulse: false });
+    while let Some(message) = message_queue.pop_front() {
+        if let Some(target) = modules.get_mut(&message.target) {
+            for m in target.handle_pulse(message.sender, message.pulse) {
+                if m.pulse {
+                    high_senders.insert(m.sender.clone());
+                    highs += 1;
+                } else {
+                    lows += 1;
+                }
+
+
+                message_queue.push_back(m);
+            }
+        }
+    }
+    (lows, highs, high_senders)
 }
 
 impl Day for Day20 {
     fn day_name(&self) -> String { String::from("20") }
     fn answer1(&self) -> String { String::from("731517480") }
-    fn answer2(&self) -> String { String::from("??") }
+    fn answer2(&self) -> String { String::from("244178746156661") }
 
     fn part1(&mut self) -> String {
         self.prime_conjunction_memories();
-        return String::new();
+        //return String::new();
 
-        let (lows, highs) = self.push_button_x(1000);
-        println!("{lows}, {highs}");
+        let (lows, highs) = push_button_x(&mut self.modules.clone(), 1000);
         (lows * highs).to_string()
     }
 
     fn part2(&mut self) -> String {
-        self.push_button_to_rx().to_string()
+        push_button_to_rx(&mut self.modules).to_string()
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum ModuleType {
     Broadcast,
     FlipFlop(bool),
     Conjunction(HashMap<String, bool>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Module {
     id: String,
     mode: ModuleType,
@@ -132,13 +150,11 @@ impl Module {
     }
 
     fn handle_pulse(&mut self, sender: String, high: bool) -> Vec<Message> {
-        let pulses = match &self.mode {
+        match &self.mode {
             ModuleType::Broadcast => self.handle_pulse_broadcast(high),
             ModuleType::FlipFlop(state) => self.handle_pulse_flip_flop(*state, high),
             ModuleType::Conjunction(memory) => self.handle_pulse_conjunction(sender, &mut memory.clone(), high),
-        };
-
-        pulses
+        }
     }
 
     fn handle_pulse_broadcast(&self, high: bool) -> Vec<Message> {
