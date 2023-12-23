@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display};
 
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IntoParallelRefMutIterator};
+
 use super::super::day::Day;
 
 pub struct Day22
@@ -22,47 +24,20 @@ impl Day22 {
 impl Day for Day22 {
     fn day_name(&self) -> String { String::from("22") }
     fn answer1(&self) -> String { String::from("437") }
-    fn answer2(&self) -> String { String::from("??") }
+    fn answer2(&self) -> String { String::from("42561") }
 
     fn part1(&mut self) -> String {
-        // for b in &self.bricks {
-        //     println!("{b}");
-        // }
+        // TODO this takes ages...
+        while self.drop_once() {}
 
-        // println!();
-        // self._print_across_x();
-        // Doesn't do anything? Which Surprises me...
-        //self.bricks.sort_by_key(|b| b.cubes.iter().map(|c| c.z).min());
-        let mut drops = 0;
-        while self.drop_once() {
-            drops += 1;
-        }
-        println!("Dropped {drops} times...");
-        // println!();
-        // self._print_across_x();
-        // println!();
-        // self._print_across_y();
-        let answer = self.count_redundant();
-        if answer >= 540 { println!("TOO HIGH") }
-
-        // for brick in &self.bricks {
-        //     println!("{} supports: ", brick.label);
-        //     for b in brick.supports(&self.bricks) {
-        //         println!("-> {b}");
-        //         for supporter in &b.supported_by(&self.bricks) {
-        //             println!("  -> {supporter}")
-        //         }
-        //     }
-
-        //     println!("Redundant: {}", brick.is_redundant(&self.bricks));
-            
-        //     println!();
-        // }
-        answer.to_string()
+        self.count_redundant().to_string()
     }
 
     fn part2(&mut self) -> String {
-        String::new()
+        // for brick in &self.bricks {
+        //     println!("{brick} => {}", brick.count_chain_reaction(&self.bricks, &vec![brick.clone()]));
+        // }
+        self.bricks.iter().map(|b| b.count_chain_reaction(&self.bricks)).sum::<usize>().to_string()
     }
 }
 
@@ -111,8 +86,15 @@ impl Day22 {
         any_moved
     }
 
-    fn count_redundant(&self) -> usize {
-        self.bricks.iter().filter(|b| b.is_redundant(&self.bricks)).count()
+    fn count_redundant(&mut self) -> usize {
+        let context = self.bricks.clone();
+        let mut count = 0;
+        for brick in &mut self.bricks {
+            if brick.is_redundant(&context) {
+                count += 1;
+            } 
+        }
+        count
     }
 }
 
@@ -142,11 +124,11 @@ impl Brick {
     fn generate_label(mut id: usize) -> String {
         let mut result = String::new();
         while id >= 26 {
-            result = (('A' as u8 + ((id % 26) as u8)) as char).to_string() + &result;
+            result = ((b'A' + ((id % 26) as u8)) as char).to_string() + &result;
             id /= 26;
             id -= 1;
         }
-        result = (('A' as u8 + ((id % 26) as u8)) as char).to_string() + &result;
+        result = ((b'A' + ((id % 26) as u8)) as char).to_string() + &result;
         result
     }
 
@@ -164,7 +146,7 @@ impl Brick {
         }
     }
 
-    fn try_move_down(&mut self, others: &Vec<Brick>) -> bool {
+    fn try_move_down(&mut self, others: &[Brick]) -> bool {
         for cube in &self.cubes {
             let target_cube = Coord { x: cube.x, y: cube.y, z: cube.z - 1};
             if target_cube.z == 0 {
@@ -198,10 +180,48 @@ impl Brick {
             .collect()
     }
 
-    fn is_redundant(&self, bricks: &[Brick]) -> bool {
+    fn is_redundant(&mut self, bricks: &[Brick]) -> bool {
         let supports = self.supports(bricks);
 
         supports.is_empty() || supports.iter().all(|b| b.supported_by(bricks).len() > 1)
+    }
+
+    fn count_chain_reaction(&self, bricks: &[Brick]) -> usize {
+        //let supported_only_by_me = self.supports(bricks).into_iter().filter(|b| b.supported_by(bricks).len() == 1);
+
+        //println!("Count chain reaction on {}", self.label);
+
+        let mut last_dissolving = vec![self.clone()];
+
+        let mut new_dissolves = bricks.iter()
+            .filter(|b| !last_dissolving.contains(b))
+            .filter(|b| !b.supported_by(bricks).is_empty())
+            .filter(|b| 
+                b.supported_by(bricks).iter()
+                .all(|supporter| last_dissolving.contains(supporter))
+            )
+            .map(|b| b.clone())
+            .collect::<Vec<Brick>>();
+
+        while !new_dissolves.is_empty() {
+            //println!("found {} new dissolves: ", new_dissolves.len());
+            //for b in &new_dissolves { println!("  {}", b.label); }
+            last_dissolving.extend(new_dissolves.into_iter());
+            //println!("New dissolving set:");
+            //for b in &last_dissolving { println!("  {}", b.label); }
+
+            new_dissolves = bricks.iter()
+                .filter(|b| !last_dissolving.contains(b))
+                .filter(|b| !b.supported_by(bricks).is_empty())
+                .filter(|b| 
+                    b.supported_by(bricks).iter()
+                    .all(|supporter| last_dissolving.contains(supporter))
+                )
+                .cloned()
+                .collect::<Vec<Brick>>();
+        }
+
+        last_dissolving.len() - 1 // Uncount the original dissolving brick
     }
 }
 
